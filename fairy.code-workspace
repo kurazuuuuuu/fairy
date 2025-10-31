@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "app/fairy-backend"
+		},
+		{
+			"path": "app/fairy-frontend"
+		},
+		{
+			"path": "."
+		}
+	]
+}
