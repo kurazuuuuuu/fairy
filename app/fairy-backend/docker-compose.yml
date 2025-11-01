@@ -8,7 +8,10 @@ services:
       - "8000:8000"
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - MONGODB_URI=mongodb://fairy-mongodb:27017
     restart: unless-stopped
+    depends_on:
+      - fairy-mongodb
 
   fairy-backend-bot:
     build:
@@ -21,3 +24,14 @@ services:
     restart: unless-stopped
     depends_on:
       - fairy-backend-api
+
+  fairy-mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:

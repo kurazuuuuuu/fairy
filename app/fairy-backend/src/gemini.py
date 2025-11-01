@@ -15,6 +15,7 @@ import json
 from datetime import datetime
 
 from src.models import ResearchBodyModel, ResearchResponseModel
+from src.db import save_research_result
 
 def load_api_key():
     load_dotenv()
@@ -34,8 +35,21 @@ def gemini_research(body: ResearchBodyModel):
     time_end = time.time()
     processing_time = round(time_end - time_start, 3)
     
+    research_uuid = uuid.uuid4()
+    
+    # データベースに保存
+    save_research_result(
+        uuid=research_uuid,
+        owner=body.user_id,
+        keyword=body.keyword,
+        smart_message=result['smart_message'],
+        full_message=result['full_message'],
+        urls=result['urls'],
+        time=processing_time
+    )
+    
     response = ResearchResponseModel(
-        uuid=uuid.uuid4(),
+        uuid=research_uuid,
         owner=body.user_id,
         smart_message=result['smart_message'],
         full_message=result['full_message'],
