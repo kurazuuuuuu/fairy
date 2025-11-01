@@ -7,4 +7,5 @@ requires-python = ">=3.13"
 dependencies = [
     "discord-py>=2.6.4",
     "fastapi[standard]>=0.120.3",
+    "google-genai>=1.47.0",
 ]
