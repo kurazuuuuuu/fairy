@@ -1,4 +1,4 @@
-from pydantic import BaseModel, UUID4
+from pydantic import BaseModel, UUID4, Field
 from datetime import datetime
 from typing import Optional
 
@@ -9,7 +9,8 @@ class ResearchBodyModel(BaseModel):
 class ResearchResponseModel(BaseModel):
     uuid: UUID4
     owner: int
-    message: str
+    smart_message: str = Field(max_length=2000)
+    full_message: str
     time: Optional[float]
 
 class HistoryResponseModel(BaseModel):

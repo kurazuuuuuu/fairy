@@ -1,5 +1,5 @@
 services:
-  fairy-api:
+  fairy-backend-api:
     build:
       context: .
       dockerfile: Dockerfile
@@ -10,7 +10,7 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
     restart: unless-stopped
 
-  fairy-bot:
+  fairy-backend-bot:
     build:
       context: .
       dockerfile: Dockerfile
@@ -20,4 +20,4 @@ services:
       - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
     restart: unless-stopped
     depends_on:
-      - fairy-api
+      - fairy-backend-api
