@@ -4,7 +4,7 @@
 2. Discordの送信者のユーザーIDとkeywordを`/api/research`にPOST
 3. レスポンスをDiscordに送信＆DBに保管、URLを発行。
 ## FastAPIバックエンド
-### URL：https://fairy.krz-tech.net/
+### URL：https://fairy.krz-tech.net/api
 ### エンドポイント
 - POST `/api/research`
     - Body:
