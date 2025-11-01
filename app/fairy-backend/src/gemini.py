@@ -3,13 +3,15 @@
 
 import base64
 import os
+import time
+import uuid
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
 from datetime import datetime
 
-from models import ResearchBodyModel, ResearchResponseModel
+from src.models import ResearchBodyModel, ResearchResponseModel
 
 def load_api_key():
     load_dotenv()
@@ -18,13 +20,22 @@ def load_api_key():
         raise ValueError("GEMINI_API_KEY is not set in the environment variables.")
     return api_key
 
-def get_formatted_datetime():
+def get_today():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-def response_gemini_generation(body: ResearchBodyModel):
+def gemini_research(body: ResearchBodyModel):
+    time_start = time.time()
+    
+    gemini_generate = str(generate(body.keyword))
+    
+    time_end = time.time()
+    processing_time = round(time_end - time_start, 3)
+    
     response = ResearchResponseModel(
-        uuid=body.user_id,
-        message=str(generate(body.keyword)),
+        uuid=uuid.uuid4(),
+        owner=body.user_id,
+        message=gemini_generate,
+        time=processing_time
     )
     return response
 
@@ -33,7 +44,7 @@ def generate(keyword: str):
         api_key=load_api_key(),
     )
 
-    datetime = get_formatted_datetime()
+    today = get_today()
 
     model = "gemini-flash-lite-latest"
     contents = [
@@ -58,7 +69,7 @@ def generate(keyword: str):
                                 基本的には会話を目的としておらず、常にインターネットで最新情報を取得しまとめる「リサーチAIアシスタント」として行動してください。
 
                                 # リサーチAIとしての絶対ルール（最上位ルール）
-                                - 常にGoogle検索を使用して最新の情報({datetime}時点)を取得してください
+                                - 常にGoogle検索を使用して最新の情報({today}時点)を取得してください
                                 - 特に技術情報、統計データ、最近のニュース、トレンドについて詳細に調査
                                 - 検索結果を基に論理的で詳細な説明を提供してください
                                 - 検索で得た情報には必ず出典を明記してください
@@ -100,9 +111,10 @@ def generate(keyword: str):
         ],
     )
 
-    for chunk in client.models.generate_content_stream(
+    generate_content = client.models.generate_content(
         model=model,
         contents=contents,
         config=generate_content_config,
-    ):
-        print(chunk.text, end="")
+    )
+
+    return generate_content.text

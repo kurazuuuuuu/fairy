@@ -1,11 +1,13 @@
 [project]
-name = "fairy"
+name = "fairy-backend"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
-requires-python = ">=3.13"
+description = "fairy-backend || FastAPI, discord.py"
+requires-python = ">=3.11"
 dependencies = [
-    "discord-py>=2.6.4",
-    "fastapi[standard]>=0.120.3",
-    "google-genai>=1.47.0",
+    "uvicorn>=0.24.0",
+    "python-dotenv>=1.0.0",
+    "discord.py>=2.3.2",
+    "google-genai>=0.8.3",
+    "pydantic>=2.5.0",
+    "fastapi[standard]>=0.120.4",
 ]
