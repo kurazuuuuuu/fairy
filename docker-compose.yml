@@ -1,0 +1,45 @@
+services:
+  fairy-backend-api:
+    build:
+      context: ./app/fairy-backend
+      dockerfile: Dockerfile
+    command: ["uv", "run", "fastapi", "run", "main_api.py", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8000:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - MONGODB_URI=mongodb://fairy-mongodb:27017
+    restart: unless-stopped
+    depends_on:
+      - fairy-mongodb
+
+  fairy-backend-bot:
+    build:
+      context: ./app/fairy-backend
+      dockerfile: Dockerfile
+    command: ["uv", "run", "python", "main_bot.py"]
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+    restart: unless-stopped
+    depends_on:
+      - fairy-backend-api
+
+  fairy-mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+
+  fairy-frontend:
+    build:
+      context: ./app/fairy-frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:

@@ -8,9 +8,11 @@ import uuid
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-from typing import List
+from typing import List, Dict
 import re
 import json
+import requests
+from bs4 import BeautifulSoup
 
 from datetime import datetime
 
@@ -37,17 +39,6 @@ def gemini_research(body: ResearchBodyModel):
     
     research_uuid = uuid.uuid4()
     
-    # データベースに保存
-    save_research_result(
-        uuid=research_uuid,
-        owner=body.user_id,
-        keyword=body.keyword,
-        smart_message=result['smart_message'],
-        full_message=result['full_message'],
-        urls=result['urls'],
-        time=processing_time
-    )
-    
     response = ResearchResponseModel(
         uuid=research_uuid,
         owner=body.user_id,
@@ -55,6 +46,11 @@ def gemini_research(body: ResearchBodyModel):
         full_message=result['full_message'],
         time=processing_time
     )
+
+    urls = result.get('urls', [])
+    print(f"Saving URLs to DB: {urls}")
+    save_research_result(response, body.keyword, urls)
+
     return response
 
 def generate_research(keyword: str):
@@ -101,10 +97,55 @@ def generate_research(keyword: str):
 
     return generate_content.text
 
-def extract_urls(text: str) -> List[str]:
-    """テキストからURLを抽出"""
+def get_page_title(url: str) -> str | None:
+    """ページのタイトルを取得"""
+    try:
+        response = requests.get(url, timeout=5, headers={'User-Agent': 'Mozilla/5.0'})
+        soup = BeautifulSoup(response.content, 'html.parser')
+        title = soup.find('title')
+        if title:
+            return title.get_text().strip()
+    except:
+        pass
+    return None
+
+def resolve_redirect_url(url: str) -> str:
+    """リダイレクトURLを解決して実際のURLを取得"""
+    try:
+        response = requests.head(url, allow_redirects=True, timeout=5)
+        return response.url
+    except:
+        return url
+
+def extract_urls_with_metadata(text: str) -> List[Dict[str, str]]:
+    """テキストからURLを抽出し、メタデータを取得"""
     url_pattern = r'https?://[^\s]+'
-    return re.findall(url_pattern, text)
+    urls = re.findall(url_pattern, text)
+    
+    url_metadata_list = []
+    seen_urls = set()
+    
+    for url in urls:
+        if 'vertexaisearch.cloud.google.com' in url:
+            resolved_url = resolve_redirect_url(url)
+        else:
+            resolved_url = url
+        
+        if resolved_url not in seen_urls:
+            seen_urls.add(resolved_url)
+            try:
+                response = requests.head(resolved_url, timeout=5, headers={'User-Agent': 'Mozilla/5.0'}, allow_redirects=True)
+                if response.status_code == 404:
+                    continue
+            except:
+                pass
+            title = get_page_title(resolved_url)
+            url_metadata_list.append({
+                'url': resolved_url,
+                'title': title
+            })
+    
+    return url_metadata_list
 
 def generate_message(keyword: str):
     client = genai.Client(
@@ -113,7 +154,8 @@ def generate_message(keyword: str):
 
     # まず詳細なリサーチを実行
     full_research = str(generate_research(keyword))
-    urls = extract_urls(full_research)
+    url_metadata = extract_urls_with_metadata(full_research)
+    print(f"Extracted URL metadata: {url_metadata}")
 
     model = "gemini-flash-lite-latest"
     contents = [
@@ -207,5 +249,5 @@ def generate_message(keyword: str):
     return {
         'smart_message': result['smart_message'],
         'full_message': result['full_message'],
-        'urls': urls
+        'urls': url_metadata
     }

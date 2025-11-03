@@ -1,8 +1,8 @@
 import os
 from pymongo import MongoClient
 from dotenv import load_dotenv
-from uuid import UUID
 from datetime import datetime
+from src.models import ResearchResponseModel
 
 load_dotenv()
 
@@ -14,18 +14,18 @@ def get_db():
     client = MongoClient(MONGODB_URI)
     return client[DATABASE_NAME]
 
-def save_research_result(uuid: UUID, owner: int, keyword: str, smart_message: str, full_message: str, urls: list, time: float):
+def save_research_result(research: ResearchResponseModel, keyword: str, urls: list | None = None):
     db = get_db()
     collection = db[COLLECTION_NAME]
     
     document = {
-        "_id": str(uuid),
-        "owner": owner,
+        "_id": str(research.uuid),
+        "owner": research.owner,
         "keyword": keyword,
-        "smart_message": smart_message,
-        "full_message": full_message,
-        "urls": urls,
-        "time": time,
+        "smart_message": research.smart_message,
+        "full_message": research.full_message,
+        "urls": urls or [],
+        "time": research.time,
         "created_at": datetime.utcnow()
     }
     

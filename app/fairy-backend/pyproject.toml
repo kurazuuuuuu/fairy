@@ -10,4 +10,6 @@ dependencies = [
     "google-genai>=0.8.3",
     "pydantic>=2.5.0",
     "fastapi[standard]>=0.120.4",
+    "pymongo>=4.15.3",
+    "bs4>=0.0.2",
 ]
