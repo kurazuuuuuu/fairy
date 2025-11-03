@@ -8,7 +8,7 @@ RUN npm install
 
 COPY . .
 
-ARG VITE_API_URL=https://fairy.krz-tech.net/api
+ARG VITE_API_URL=/api
 ENV VITE_API_URL=$VITE_API_URL
 
 RUN npm run build
