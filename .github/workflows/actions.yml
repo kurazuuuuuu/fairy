@@ -1,0 +1,50 @@
+name: CI
+on:
+    push: 
+        branches: [main]
+        paths-ignore:
+        - 'k8s-manifests/**'
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+    build-backend:
+        runs-on: ci-fairy
+        steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+        
+        - name: Login to GitHub Container Registry
+          run: |
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+        - name: Build and tag backend image
+          run: |
+            docker build -t ghcr.io/${{ github.repository }}-backend:${{ github.sha }} ./app/fairy-backend
+            docker tag ghcr.io/${{ github.repository }}-backend:${{ github.sha }} ghcr.io/${{ github.repository }}-backend:latest
+            
+        - name: Push backend image
+          run: |
+            docker push ghcr.io/${{ github.repository }}-backend:${{ github.sha }}
+            docker push ghcr.io/${{ github.repository }}-backend:latest
+
+    build-frontend:
+        runs-on: ci-fairy
+        steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+        
+        - name: Login to GitHub Container Registry
+          run: |
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+        - name: Build and tag frontend image
+          run: |
+            docker build -t ghcr.io/${{ github.repository }}-frontend:${{ github.sha }} ./app/fairy-frontend
+            docker tag ghcr.io/${{ github.repository }}-frontend:${{ github.sha }} ghcr.io/${{ github.repository }}-frontend:latest
+            
+        - name: Push frontend image
+          run: |
+            docker push ghcr.io/${{ github.repository }}-frontend:${{ github.sha }}
+            docker push ghcr.io/${{ github.repository }}-frontend:latest

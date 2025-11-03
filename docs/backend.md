@@ -29,8 +29,7 @@
         "keyword": str (Limit=200),
         "results": {
             "title": str,
-            "content": str,
-            "urls": ["url1", "url2"...]
+            "content": str
         },
         "created_at": timestamp
     }

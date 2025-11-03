@@ -1,0 +1,127 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fairy-backend-api
+  namespace: argocd-prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fairy-backend-api
+  template:
+    metadata:
+      labels:
+        app: fairy-backend-api
+    spec:
+      imagePullSecrets:
+      - name: ghcr-registry-secret
+      containers:
+      - name: fairy-backend-api
+        image: ghcr.io/kurazuuuuuu/fairy-backend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+        env:
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: fairy-secrets
+              key: gemini-api-key
+        - name: MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: fairy-secrets
+              key: mongodb-uri
+        - name: CORS_ORIGINS
+          value: "http://192.168.1.22,https://fairy.krz-tech.net"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fairy-backend-api
+  namespace: argocd-prod
+spec:
+  selector:
+    app: fairy-backend-api
+  ports:
+  - port: 8000
+    targetPort: 8000
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fairy-backend-bot
+  namespace: argocd-prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fairy-backend-bot
+  template:
+    metadata:
+      labels:
+        app: fairy-backend-bot
+    spec:
+      imagePullSecrets:
+      - name: ghcr-registry-secret
+      containers:
+      - name: fairy-backend-bot
+        image: ghcr.io/kurazuuuuuu/fairy-backend:latest
+        imagePullPolicy: Always
+        command: ["uv", "run", "python", "main_bot.py"]
+        env:
+        - name: DISCORD_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: fairy-secrets
+              key: discord-bot-token
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: fairy-secrets
+              key: gemini-api-key
+        - name: BACKEND_API_URL
+          value: "http://fairy-backend-api:8000"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fairy-frontend
+  namespace: argocd-prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fairy-frontend
+  template:
+    metadata:
+      labels:
+        app: fairy-frontend
+    spec:
+      imagePullSecrets:
+      - name: ghcr-registry-secret
+      containers:
+      - name: fairy-frontend
+        image: ghcr.io/kurazuuuuuu/fairy-frontend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        env:
+        - name: VITE_API_URL
+          value: "https://fairy.krz-tech.net/api"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fairy-frontend
+  namespace: argocd-prod
+spec:
+  selector:
+    app: fairy-frontend
+  ports:
+  - port: 80
+    targetPort: 80
+  type: LoadBalancer
+  loadBalancerIP: 192.168.1.22
