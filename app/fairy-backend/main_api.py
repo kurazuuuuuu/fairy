@@ -29,4 +29,6 @@ async def get_research(uuid: str):
     result = get_research_result(uuid)
     if result is None:
         raise HTTPException(status_code=404, detail="Research not found")
+    if "_id" in result:
+        result["_id"] = str(result["_id"])
     return result
