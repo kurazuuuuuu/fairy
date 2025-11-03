@@ -4,6 +4,6 @@ resources:
 - manifests.yaml
 images:
 - name: ghcr.io/kurazuuuuuu/fairy-backend
-  newTag: latest
+  newTag: 1282521dc4ed9859d80f0b8855fb763408195880
 - name: ghcr.io/kurazuuuuuu/fairy-frontend
-  newTag: latest
+  newTag: 1282521dc4ed9859d80f0b8855fb763408195880
