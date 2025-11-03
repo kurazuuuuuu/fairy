@@ -8,7 +8,13 @@
         <p>処理時間: {{ research.time }}秒</p>
         <p>作成日時: {{ new Date(research.created_at).toLocaleString('ja-JP') }}</p>
       </div>
-      <div class="message" v-html="formatMarkdown(research.full_message)"></div>
+      <div class="message-container">
+        <div class="fairy-header">
+          <img src="/images/fairy.webp" alt="Fairy" class="fairy-icon" />
+          <span class="fairy-name">Fairy</span>
+        </div>
+        <div class="message" v-html="formatMarkdown(research.full_message)"></div>
+      </div>
       <div v-if="research.urls && Array.isArray(research.urls) && research.urls.length > 0" class="urls">
         <h2>参考URL</h2>
         <div class="url-grid">
@@ -122,16 +128,15 @@ onMounted(async () => {
   margin-bottom: 20px;
   font-weight: 600;
   letter-spacing: -0.5px;
-  border-bottom: 1px solid #181718;
-  padding-bottom: 15px;
 }
 
 .meta {
   color: #cccccc;
-  margin-bottom: 30px;
-  padding: 15px;
-  background: #2a292a;
-  border-radius: 6px;
+  margin-bottom: 20px;
+  padding: 20px;
+  background: rgba(42, 41, 42, 0.6);
+  border: 2px solid #181718;
+  border-radius: 8px;
   font-size: 0.9em;
 }
 
@@ -139,38 +144,153 @@ onMounted(async () => {
   margin: 5px 0;
 }
 
-.message {
-  line-height: 1.8;
-  margin-bottom: 40px;
-  color: #e0e0e0;
+.message-container {
+  position: relative;
+  margin-bottom: 30px;
 }
 
-.message :deep(h1),
-.message :deep(h2),
+.fairy-header {
+  position: absolute;
+  top: -15px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  background: #2a292a;
+  border: 2px solid #181718;
+  border-radius: 50px;
+  padding-right: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  z-index: 1;
+}
+
+.fairy-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #2a292a;
+  object-fit: cover;
+}
+
+.fairy-name {
+  color: #ffffff;
+  font-size: 0.9em;
+  font-weight: 600;
+  padding-left: 10px;
+}
+
+.message {
+  line-height: 1.8;
+  padding: 50px;
+  padding-top: 60px;
+  color: #e0e0e0;
+  background: rgba(0, 0, 0, 0.4);
+  border: 5px solid #222122;
+  box-shadow: 
+    0 0 0 5px #181718,
+    inset 0 2px 4px rgba(255, 255, 255, 0.05),
+    0 4px 8px rgba(0, 0, 0, 0.3);
+  border-radius: 20px;
+}
+
+.message :deep(h1) {
+  color: #ffffff;
+  font-size: 1.8em;
+  margin-top: 32px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  border-bottom: 2px solid #181718;
+  padding-bottom: 8px;
+}
+
+.message :deep(h1:first-child) {
+  margin-top: 0;
+}
+
+.message :deep(h2) {
+  color: #ffffff;
+  font-size: 1.5em;
+  margin-top: 28px;
+  margin-bottom: 14px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+
 .message :deep(h3) {
   color: #ffffff;
+  font-size: 1.2em;
   margin-top: 24px;
   margin-bottom: 12px;
   font-weight: 600;
   letter-spacing: -0.3px;
 }
 
+.message :deep(p) {
+  margin-bottom: 16px;
+  line-height: 1.8;
+}
+
+.message :deep(ul),
+.message :deep(ol) {
+  margin-bottom: 16px;
+  padding-left: 24px;
+}
+
+.message :deep(li) {
+  margin-bottom: 8px;
+  line-height: 1.7;
+}
+
 .message :deep(code) {
   background: #181718;
-  padding: 2px 6px;
+  padding: 3px 8px;
   border-radius: 4px;
   color: #e0e0e0;
   font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+.message :deep(pre) {
+  background: #181718;
+  padding: 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+
+.message :deep(pre code) {
+  background: none;
+  padding: 0;
+}
+
+.message :deep(blockquote) {
+  border-left: 4px solid #181718;
+  padding-left: 16px;
+  margin: 16px 0;
+  color: #cccccc;
+  font-style: italic;
+}
+
+.message :deep(strong) {
+  color: #ffffff;
+  font-weight: 600;
 }
 
 .message :deep(a) {
   color: #ffffff;
   text-decoration: underline;
   text-decoration-color: #666666;
+  transition: text-decoration-color 0.2s;
 }
 
 .message :deep(a:hover) {
   text-decoration-color: #ffffff;
+}
+
+.message :deep(hr) {
+  border: none;
+  border-top: 2px solid #181718;
+  margin: 24px 0;
 }
 
 .urls {
