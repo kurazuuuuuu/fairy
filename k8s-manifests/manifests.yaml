@@ -18,7 +18,7 @@ spec:
       - name: ghcr-registry-secret
       containers:
       - name: fairy-backend-api
-        image: ghcr.io/kurazuuuuuu/fairy-backend:latest
+        image: ghcr.io/kurazuuuuuu/fairy-backend-api:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8000
@@ -65,9 +65,8 @@ spec:
       - name: ghcr-registry-secret
       containers:
       - name: fairy-backend-bot
-        image: ghcr.io/kurazuuuuuu/fairy-backend:latest
+        image: ghcr.io/kurazuuuuuu/fairy-backend-bot:latest
         imagePullPolicy: Always
-        command: ["uv", "run", "python", "main_bot.py"]
         env:
         - name: DISCORD_BOT_TOKEN
           valueFrom:

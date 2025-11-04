@@ -1,0 +1,9 @@
+services:
+  fairy-backend-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["uv", "run", "main.py"]
+    environment:
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+    restart: unless-stopped

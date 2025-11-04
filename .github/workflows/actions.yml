@@ -9,7 +9,7 @@ permissions:
   packages: write
 
 jobs:
-    build-backend:
+    build-backend-api:
         runs-on: ci-fairy
         steps:
         - name: Checkout code
@@ -19,15 +19,35 @@ jobs:
           run: |
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
-        - name: Build and tag backend image
+        - name: Build and tag backend-api image
           run: |
-            docker build -t ghcr.io/${{ github.repository }}-backend:${{ github.sha }} ./app/fairy-backend
-            docker tag ghcr.io/${{ github.repository }}-backend:${{ github.sha }} ghcr.io/${{ github.repository }}-backend:latest
+            docker build -t ghcr.io/${{ github.repository }}-backend-api:${{ github.sha }} ./app/fairy-backend-api
+            docker tag ghcr.io/${{ github.repository }}-backend-api:${{ github.sha }} ghcr.io/${{ github.repository }}-backend-api:latest
             
-        - name: Push backend image
+        - name: Push backend-api image
           run: |
-            docker push ghcr.io/${{ github.repository }}-backend:${{ github.sha }}
-            docker push ghcr.io/${{ github.repository }}-backend:latest
+            docker push ghcr.io/${{ github.repository }}-backend-api:${{ github.sha }}
+            docker push ghcr.io/${{ github.repository }}-backend-api:latest
+
+    build-backend-bot:
+        runs-on: ci-fairy
+        steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+        
+        - name: Login to GitHub Container Registry
+          run: |
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            
+        - name: Build and tag backend-bot image
+          run: |
+            docker build -t ghcr.io/${{ github.repository }}-backend-bot:${{ github.sha }} ./app/fairy-backend-bot
+            docker tag ghcr.io/${{ github.repository }}-backend-bot:${{ github.sha }} ghcr.io/${{ github.repository }}-backend-bot:latest
+            
+        - name: Push backend-bot image
+          run: |
+            docker push ghcr.io/${{ github.repository }}-backend-bot:${{ github.sha }}
+            docker push ghcr.io/${{ github.repository }}-backend-bot:latest
 
     build-frontend:
         runs-on: ci-fairy

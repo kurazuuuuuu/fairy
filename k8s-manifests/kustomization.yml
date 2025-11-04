@@ -3,7 +3,9 @@ kind: Kustomization
 resources:
 - manifests.yaml
 images:
-- name: ghcr.io/kurazuuuuuu/fairy-backend
-  newTag: 1282521dc4ed9859d80f0b8855fb763408195880
+- name: ghcr.io/kurazuuuuuu/fairy-backend-bot
+  newTag: latest
+- name: ghcr.io/kurazuuuuuu/fairy-backend-api
+  newTag: latest
 - name: ghcr.io/kurazuuuuuu/fairy-frontend
   newTag: 1282521dc4ed9859d80f0b8855fb763408195880

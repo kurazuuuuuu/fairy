@@ -1,7 +1,10 @@
 {
 	"folders": [
 		{
-			"path": "app/fairy-backend"
+			"path": "app/fairy-backend-api"
+		},
+		{
+			"path": "app/fairy-backend-bot"
 		},
 		{
 			"path": "app/fairy-frontend"
