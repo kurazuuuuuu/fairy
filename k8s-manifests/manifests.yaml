@@ -121,7 +121,7 @@ spec:
             cpu: "500m"
         env:
         - name: VITE_API_URL
-          value: "http://192.168.1.24:8000"
+          value: "https://fairy.krz-tech.net"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
