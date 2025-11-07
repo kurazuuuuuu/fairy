@@ -69,11 +69,24 @@ def run_bot():
             if content:
                 async with message.channel.typing():
                     try:
-                        # POST to FastAPI /research endpoint
+                        # Get JWT token first
                         async with aiohttp.ClientSession() as session:
                             async with session.post(
-                                'http://fairy-backend-api:8000/api/research',
-                                json={'user_id': message.author.id, 'keyword': content}
+                                f"{os.getenv('BACKEND_API_URL')}/api/auth/token",
+                                params={'user_id': message.author.id}
+                            ) as token_response:
+                                if token_response.status != 200:
+                                    await message.reply("マスター、認証に失敗しました。")
+                                    return
+                                token_data = await token_response.json()
+                                access_token = token_data['access_token']
+                            
+                            # POST to FastAPI /research endpoint with JWT
+                            headers = {'Authorization': f'Bearer {access_token}'}
+                            async with session.post(
+                                f"{os.getenv('BACKEND_API_URL')}/api/research",
+                                json={'user_id': message.author.id, 'keyword': content},
+                                headers=headers
                             ) as response:
                                 if response.status == 200:
                                     result = await response.json()

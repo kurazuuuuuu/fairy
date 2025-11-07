@@ -37,6 +37,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { marked } from 'marked'
+import { fetchWithAuth } from '@/utils/auth'
 
 const route = useRoute()
 const research = ref<any>(null)
@@ -70,7 +71,7 @@ onMounted(async () => {
   try {
     const uuid = route.params.uuid
     const apiUrl = import.meta.env.VITE_API_URL || ''
-    const response = await fetch(`${apiUrl}/api/research/${uuid}`)
+    const response = await fetchWithAuth(`${apiUrl}/api/research/${uuid}`)
     if (!response.ok) {
       throw new Error('リサーチ結果が見つかりませんでした')
     }
