@@ -13,7 +13,7 @@ export async function getToken(): Promise<string> {
 
 async function generateToken(): Promise<string> {
   const userId = getUserId()
-  const apiUrl = import.meta.env.VITE_API_URL || ''
+  const apiUrl = (window as any).ENV?.VITE_API_URL || import.meta.env.VITE_API_URL || ''
   
   const response = await fetch(`${apiUrl}/api/auth/token`, {
     method: 'POST',
@@ -45,9 +45,12 @@ function getUserId(): number {
 export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
   const token = await getToken()
   
-  const headers = {
-    ...options.headers,
+  const headers: Record<string, string> = {
     'Authorization': `Bearer ${token}`
+  }
+  
+  if (options.headers) {
+    Object.assign(headers, options.headers)
   }
   
   const response = await fetch(url, { ...options, headers })

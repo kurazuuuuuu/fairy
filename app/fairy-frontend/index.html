@@ -11,6 +11,9 @@
   </head>
   <body>
     <div id="app"></div>
+    <script>
+      window.ENV = { VITE_API_URL: '${VITE_API_URL}' };
+    </script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
