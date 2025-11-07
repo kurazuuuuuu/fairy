@@ -34,7 +34,12 @@ async def get_research(uuid: str, token_payload: dict = Depends(verify_jwt_token
         result["_id"] = str(result["_id"])
     return result
 
+from pydantic import BaseModel
+
+class TokenRequest(BaseModel):
+    user_id: int
+
 @app.post("/api/auth/token")
-async def generate_token(user_id: int):
-    token = create_jwt_token(user_id)
+async def generate_token(request: TokenRequest):
+    token = create_jwt_token(request.user_id)
     return {"access_token": token, "token_type": "bearer"}

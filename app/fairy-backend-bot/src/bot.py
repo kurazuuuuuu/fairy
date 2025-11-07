@@ -73,7 +73,7 @@ def run_bot():
                         async with aiohttp.ClientSession() as session:
                             async with session.post(
                                 f"{os.getenv('BACKEND_API_URL')}/api/auth/token",
-                                params={'user_id': message.author.id}
+                                json={'user_id': message.author.id}
                             ) as token_response:
                                 if token_response.status != 200:
                                     await message.reply("マスター、認証に失敗しました。")
