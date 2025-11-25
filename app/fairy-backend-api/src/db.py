@@ -8,26 +8,25 @@ load_dotenv()
 
 MONGODB_URI = os.environ.get("MONGODB_URI", "mongodb://localhost:27017")
 DATABASE_NAME = "fairy"
-COLLECTION_NAME = "research_results"
+COLLECTION_NAME = {
+    "RESEARCH_RESULTS": "research_results",
+    "USERS": "users"
+}
 
 def get_db():
     client = MongoClient(MONGODB_URI)
     return client[DATABASE_NAME]
 
-def save_research_result(research: ResearchResponseModel, keyword: str, urls: list | None = None):
+def save_research_result(research: ResearchResponseModel):
     db = get_db()
-    collection = db[COLLECTION_NAME]
+    collection = db[COLLECTION_NAME["RESEARCH_RESULTS"]]
     
-    document = {
-        "_id": str(research.uuid),
-        "owner": research.owner,
-        "keyword": keyword,
-        "smart_message": research.smart_message,
-        "full_message": research.full_message,
-        "urls": urls or [],
-        "time": research.time,
-        "created_at": datetime.utcnow()
-    }
+    document = research.model_dump()
+    document["_id"] = str(research.uuid)
+    
+    # Ensure created_at is present
+    if "created_at" not in document or not document["created_at"]:
+        document["created_at"] = datetime.utcnow()
     
     collection.insert_one(document)
     return document

@@ -16,7 +16,7 @@ from bs4 import BeautifulSoup
 
 from datetime import datetime
 
-from src.models import ResearchBodyModel, ResearchResponseModel
+from src.models import ResearchBodyModel, ResearchResponseModel, UrlMetadata
 from src.db import save_research_result
 
 def load_api_key():
@@ -39,17 +39,25 @@ def gemini_research(body: ResearchBodyModel):
     
     research_uuid = uuid.uuid4()
     
+    # Convert dicts to UrlMetadata objects
+    url_objects = [UrlMetadata(**u) for u in result.get('urls', [])]
+    
     response = ResearchResponseModel(
         uuid=research_uuid,
+        message_id=0, # Placeholder
         owner=body.user_id,
+        keyword=body.keyword,
         smart_message=result['smart_message'],
         full_message=result['full_message'],
-        time=processing_time
+        time=processing_time,
+        urls=url_objects,
+        primary_research_result=uuid.uuid4(), # Placeholder
+        created_at=datetime.now(),
+        updated_at=datetime.now()
     )
 
-    urls = result.get('urls', [])
-    print(f"Saving URLs to DB: {urls}")
-    save_research_result(response, body.keyword, urls)
+    print(f"Saving URLs to DB: {len(url_objects)} urls")
+    save_research_result(response)
 
     return response
 
