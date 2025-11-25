@@ -14,7 +14,10 @@ class UrlMetadata(BaseModel):
 
 class UserModel(BaseModel):
     user_id: int
-    research_list: list[str]
+    research_list: list[str] = []
+    tos_agreed: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 class ResearchResponseModel(BaseModel):
     uuid: UUID4

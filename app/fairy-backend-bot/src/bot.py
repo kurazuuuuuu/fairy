@@ -96,11 +96,53 @@ def run_bot():
                                                         \nURL：https://fairy.krz-tech.net/{result['uuid']}
                                                         \nFairy処理時間：{result['time']}秒"""
                                     await message.reply(reply_text)
+                                elif response.status == 403:
+                                    # ToS not agreed
+                                    view = ToSView(message.author.id, access_token)
+                                    await message.reply(
+                                        "マスター、Fairyの機能を使用するには、以下の利用規約に同意する必要があります。\n\n"
+                                        "1. **Gemini APIの利用**: 情報収集・分析のためにGoogle Gemini APIを使用します。\n"
+                                        "2. **データの保存**: リサーチ結果や会話データは、サービスの品質向上および履歴管理のために保存されます。\n"
+                                        "3. **免責事項**: 生成された情報の正確性について保証するものではありません。\n\n"
+                                        "同意いただける場合は、下のボタンを押してください。",
+                                        view=view
+                                    )
                                 else:
                                     await message.reply("マスター、探索中にエラーが発生しました。")
                     except Exception as e:
                         logger.error(f"Research request failed: {e}")
                         await message.reply("マスター、探索中にエラーが発生しました。管理者に確認してみてください。")
+
+class ToSView(discord.ui.View):
+    def __init__(self, user_id: int, access_token: str):
+        super().__init__(timeout=180)
+        self.user_id = user_id
+        self.access_token = access_token
+
+    @discord.ui.button(label="利用規約に同意する", style=discord.ButtonStyle.green)
+    async def agree_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("これはあなたのためのボタンではありません。", ephemeral=True)
+            return
+
+        await interaction.response.defer()
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                headers = {'Authorization': f'Bearer {self.access_token}'}
+                async with session.post(
+                    f"{os.getenv('BACKEND_API_URL')}/api/users/tos",
+                    json={'user_id': self.user_id},
+                    headers=headers
+                ) as response:
+                    if response.status == 200:
+                        await interaction.followup.send("マスター、利用規約への同意を確認しました。これよりFairyの全機能をご利用いただけます。もう一度リクエストを送ってください。")
+                        self.stop()
+                    else:
+                        await interaction.followup.send("マスター、同意の処理中にエラーが発生しました。")
+        except Exception as e:
+            logger.error(f"ToS agreement failed: {e}")
+            await interaction.followup.send("マスター、通信エラーが発生しました。")
     
     # Run the bot
     try:

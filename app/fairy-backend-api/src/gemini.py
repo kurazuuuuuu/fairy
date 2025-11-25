@@ -18,6 +18,7 @@ from datetime import datetime
 
 from src.models import ResearchBodyModel, ResearchResponseModel, UrlMetadata
 from src.db import save_research_result
+from src.users import add_research_to_user
 
 def load_api_key():
     load_dotenv()
@@ -58,6 +59,9 @@ def gemini_research(body: ResearchBodyModel):
 
     print(f"Saving URLs to DB: {len(url_objects)} urls")
     save_research_result(response)
+    
+    # Add research to user list
+    add_research_to_user(body.user_id, str(research_uuid))
 
     return response
 
