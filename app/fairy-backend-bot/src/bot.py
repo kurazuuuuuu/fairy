@@ -26,6 +26,40 @@ def setup_bot():
     
     return bot
 
+class ToSView(discord.ui.View):
+    def __init__(self, user_id: int, access_token: str):
+        super().__init__(timeout=180)
+        self.user_id = user_id
+        self.access_token = access_token
+
+    @discord.ui.button(label="利用規約に同意する", style=discord.ButtonStyle.green)
+    async def agree_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("これはあなたのためのボタンではありません。", ephemeral=True)
+            return
+
+        await interaction.response.defer()
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                headers = {'Authorization': f'Bearer {self.access_token}'}
+                async with session.post(
+                    f"{os.getenv('BACKEND_API_URL')}/api/users/tos",
+                    json={'user_id': self.user_id},
+                    headers=headers
+                ) as response:
+                    if response.status == 200:
+                        await interaction.message.edit(
+                            content="マスター、利用規約への同意を確認しました。これよりFairyの全機能をご利用いただけます。\n\nお手数ですが、もう一度リクエストを送信してください。",
+                            view=None
+                        )
+                        self.stop()
+                    else:
+                        await interaction.followup.send("マスター、同意の処理中にエラーが発生しました。", ephemeral=True)
+        except Exception as e:
+            logger.error(f"ToS agreement failed: {e}")
+            await interaction.followup.send("マスター、通信エラーが発生しました。", ephemeral=True)
+
 def run_bot():
     load_dotenv()
 
@@ -113,37 +147,6 @@ def run_bot():
                         logger.error(f"Research request failed: {e}")
                         await message.reply("マスター、探索中にエラーが発生しました。管理者に確認してみてください。")
 
-class ToSView(discord.ui.View):
-    def __init__(self, user_id: int, access_token: str):
-        super().__init__(timeout=180)
-        self.user_id = user_id
-        self.access_token = access_token
-
-    @discord.ui.button(label="利用規約に同意する", style=discord.ButtonStyle.green)
-    async def agree_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if interaction.user.id != self.user_id:
-            await interaction.response.send_message("これはあなたのためのボタンではありません。", ephemeral=True)
-            return
-
-        await interaction.response.defer()
-        
-        try:
-            async with aiohttp.ClientSession() as session:
-                headers = {'Authorization': f'Bearer {self.access_token}'}
-                async with session.post(
-                    f"{os.getenv('BACKEND_API_URL')}/api/users/tos",
-                    json={'user_id': self.user_id},
-                    headers=headers
-                ) as response:
-                    if response.status == 200:
-                        await interaction.followup.send("マスター、利用規約への同意を確認しました。これよりFairyの全機能をご利用いただけます。もう一度リクエストを送ってください。")
-                        self.stop()
-                    else:
-                        await interaction.followup.send("マスター、同意の処理中にエラーが発生しました。")
-        except Exception as e:
-            logger.error(f"ToS agreement failed: {e}")
-            await interaction.followup.send("マスター、通信エラーが発生しました。")
-    
     # Run the bot
     try:
         logger.info("Starting bot...")

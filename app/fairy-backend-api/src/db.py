@@ -14,7 +14,7 @@ COLLECTION_NAME = {
 }
 
 def get_db():
-    client = MongoClient(MONGODB_URI)
+    client = MongoClient(MONGODB_URI, uuidRepresentation='standard')
     return client[DATABASE_NAME]
 
 def save_research_result(research: ResearchResponseModel):
