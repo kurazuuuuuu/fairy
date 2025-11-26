@@ -191,6 +191,7 @@ def gemini_research(body: ResearchBodyModel):
                         title=chunk.web.title or "No Title"
                     ))
 
+def process_urls(url_objects: list[UrlMetadata]) -> tuple[list[UrlMetadata], int]:
     # Deduplicate by initial URL first to minimize requests
     initial_unique_map = {}
     for u in url_objects:
@@ -219,7 +220,6 @@ def gemini_research(body: ResearchBodyModel):
                 logger.error(f"Error resolving URL for {u.url}: {e}")
 
     # Calculate excluded count (Total unique initial URLs - Successful resolved URLs)
-    # Note: This count includes URLs that failed to resolve or returned non-200 status
     urls_excluded_count = len(unique_url_objects) - len(resolved_url_objects)
 
     # Deduplicate by resolved URL
@@ -228,10 +228,11 @@ def gemini_research(body: ResearchBodyModel):
         if u.url not in final_unique_urls:
             final_unique_urls[u.url] = u
             
-    url_objects = list(final_unique_urls.values())
+    return list(final_unique_urls.values()), urls_excluded_count
 
+def process_encoding(research_text: str) -> dict:
     # Stage 2: Encoding (Persona)
-    encoding_response = generate_fairy_response(research_response.text)
+    encoding_response = generate_fairy_response(research_text)
     if not encoding_response.text:
         raise ValueError("Encoding content is empty")
 
@@ -240,6 +241,45 @@ def gemini_research(body: ResearchBodyModel):
         result_json = json.loads(encoding_response.text)
     except json.JSONDecodeError:
         result_json = {"smart_message": "エラー：応答の解析に失敗しました。", "full_message": encoding_response.text}
+    
+    return result_json
+
+def gemini_research(body: ResearchBodyModel):
+    time_start = time.time()
+    
+    logger.info(f"--- Research Start ---")
+    logger.info(f"User ID: {body.user_id}")
+    logger.info(f"Keyword: {body.keyword}")
+
+    # Stage 1: Research
+    research_response = perform_research(body.keyword)
+    if not research_response.text:
+        raise ValueError("Research content is empty")
+    
+    logger.info(f"--- Pre-Research Log ---")
+    logger.info(research_response.text)
+    logger.info(f"------------------------")
+    
+    # Extract URLs from Research Stage
+    url_objects = []
+    if research_response.candidates and research_response.candidates[0].grounding_metadata:
+        grounding_metadata = research_response.candidates[0].grounding_metadata
+        if grounding_metadata.grounding_chunks:
+            for chunk in grounding_metadata.grounding_chunks:
+                if chunk.web:
+                    url_objects.append(UrlMetadata(
+                        url=chunk.web.uri,
+                        title=chunk.web.title or "No Title"
+                    ))
+
+    # Parallel Execution of Stage 2 (Encoding) and URL Processing
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        future_urls = executor.submit(process_urls, url_objects)
+        future_encoding = executor.submit(process_encoding, research_response.text)
+        
+        # Wait for both to complete
+        final_url_objects, urls_excluded_count = future_urls.result()
+        result_json = future_encoding.result()
 
     logger.info(f"--- Post-Research Result Log ---")
     logger.info(json.dumps(result_json, indent=2, ensure_ascii=False))
@@ -258,14 +298,14 @@ def gemini_research(body: ResearchBodyModel):
         smart_message=result_json.get('smart_message', ''),
         full_message=result_json.get('full_message', ''),
         time=processing_time,
-        urls=url_objects,
+        urls=final_url_objects,
         urls_excluded_count=urls_excluded_count,
         primary_research_result=uuid.uuid4(), # Placeholder
         created_at=datetime.now(),
         updated_at=datetime.now()
     )
 
-    logger.info(f"Saving URLs to DB: {len(url_objects)} urls")
+    logger.info(f"Saving URLs to DB: {len(final_url_objects)} urls")
     save_research_result(response_model)
     
     # Add research to user list
