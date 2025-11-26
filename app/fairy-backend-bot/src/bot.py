@@ -93,12 +93,17 @@ def run_bot():
         if message.author == bot.user:
             return
 
-        # メンション検出
-        if bot.user and bot.user.mentioned_in(message):
+        # メンション検出または返信検出
+        is_mention = bot.user and bot.user.mentioned_in(message)
+        is_reply = message.reference is not None
+
+        if is_mention or is_reply:
             content = message.content
-            for mention in message.mentions:
-                if mention == bot.user:
-                    content = content.replace(f'<@{mention.id}>', '').strip()
+            # メンション部分を削除
+            if bot.user:
+                for mention in message.mentions:
+                    if mention == bot.user:
+                        content = content.replace(f'<@{mention.id}>', '').strip()
             
             if content:
                 async with message.channel.typing():
@@ -115,37 +120,82 @@ def run_bot():
                                 token_data = await token_response.json()
                                 access_token = token_data['access_token']
                             
-                            # POST to FastAPI /research endpoint with JWT
                             headers = {'Authorization': f'Bearer {access_token}'}
-                            async with session.post(
-                                f"{os.getenv('BACKEND_API_URL')}/api/research",
-                                json={'user_id': message.author.id, 'keyword': content},
-                                headers=headers
-                            ) as response:
-                                if response.status == 200:
-                                    result = await response.json()
-                                    owner_mention = f"<@{result['owner']}>"
-                                    reply_text = f"{owner_mention}\n{result['smart_message']}"
-                                    reply_text += f"""\n\nマスター、以下のインターノットリンクに詳細情報をまとめました。必要でしたらご確認ください。
-                                                        \nURL：https://fairy.krz-tech.net/{result['uuid']}
-                                                        \nFairy処理時間：{result['time']}秒"""
-                                    await message.reply(reply_text)
-                                elif response.status == 403:
-                                    # ToS not agreed
-                                    view = ToSView(message.author.id, access_token)
-                                    await message.reply(
-                                        "マスター、Fairyの機能を使用するには、以下の利用規約に同意する必要があります。\n\n"
-                                        "1. **Gemini APIの利用**: 情報収集・分析のためにGoogle Gemini APIを使用します。\n"
-                                        "2. **データの保存**: リサーチ結果や会話データは、サービスの品質向上および履歴管理のために保存されます。\n"
-                                        "3. **免責事項**: 生成された情報の正確性について保証するものではありません。\n\n"
-                                        "同意いただける場合は、下のボタンを押してください。",
-                                        view=view
-                                    )
-                                else:
-                                    await message.reply("マスター、探索中にエラーが発生しました。")
+                            
+                            # Determine if this is a follow-up or new research
+                            if is_reply and message.reference.message_id:
+                                # Follow-up Research
+                                parent_message_id = message.reference.message_id
+                                # Check if parent message is from bot (optional, but good practice)
+                                # For now, we assume if it's a reply to bot (or just a reply where bot is mentioned/active), we try follow-up
+                                
+                                async with session.post(
+                                    f"{os.getenv('BACKEND_API_URL')}/api/research/followup",
+                                    json={
+                                        'user_id': message.author.id, 
+                                        'keyword': content,
+                                        'parent_message_id': parent_message_id
+                                    },
+                                    headers=headers
+                                ) as response:
+                                    if response.status == 200:
+                                        result = await response.json()
+                                        await send_research_result(message, result, session, headers)
+                                    elif response.status == 404:
+                                        # Parent research not found, maybe treat as new research?
+                                        await message.reply("マスター、元のリサーチ結果が見つかりませんでした。新規リサーチとして承りますか？")
+                                    elif response.status == 403:
+                                         await send_tos_request(message, message.author.id, access_token)
+                                    else:
+                                        await message.reply("マスター、追加探索中にエラーが発生しました。")
+                            else:
+                                # New Research
+                                async with session.post(
+                                    f"{os.getenv('BACKEND_API_URL')}/api/research",
+                                    json={'user_id': message.author.id, 'keyword': content},
+                                    headers=headers
+                                ) as response:
+                                    if response.status == 200:
+                                        result = await response.json()
+                                        await send_research_result(message, result, session, headers)
+                                    elif response.status == 403:
+                                        await send_tos_request(message, message.author.id, access_token)
+                                    else:
+                                        await message.reply("マスター、探索中にエラーが発生しました。")
                     except Exception as e:
                         logger.error(f"Research request failed: {e}")
                         await message.reply("マスター、探索中にエラーが発生しました。管理者に確認してみてください。")
+
+    async def send_research_result(message, result, session, headers):
+        owner_mention = f"<@{result['owner']}>"
+        reply_text = f"{owner_mention}\n{result['smart_message']}"
+        reply_text += f"""\n\nマスター、以下のインターノットリンクに詳細情報をまとめました。必要でしたらご確認ください。
+                            \nURL：https://fairy.krz-tech.net/{result['uuid']}
+                            \nFairy処理時間：{result['time']}秒"""
+        sent_message = await message.reply(reply_text)
+        
+        # Update message_id in backend
+        try:
+            async with session.patch(
+                f"{os.getenv('BACKEND_API_URL')}/api/research/{result['uuid']}/message",
+                json={'message_id': sent_message.id},
+                headers=headers
+            ) as patch_response:
+                if patch_response.status != 200:
+                    logger.warning(f"Failed to update message_id for research {result['uuid']}")
+        except Exception as e:
+            logger.error(f"Failed to update message_id: {e}")
+
+    async def send_tos_request(message, user_id, access_token):
+        view = ToSView(user_id, access_token)
+        await message.reply(
+            "マスター、Fairyの機能を使用するには、以下の利用規約に同意する必要があります。\n\n"
+            "1. **Gemini APIの利用**: 情報収集・分析のためにGoogle Gemini APIを使用します。\n"
+            "2. **データの保存**: リサーチ結果や会話データは、サービスの品質向上および履歴管理のために保存されます。\n"
+            "3. **免責事項**: 生成された情報の正確性について保証するものではありません。\n\n"
+            "同意いただける場合は、下のボタンを押してください。",
+            view=view
+        )
 
     # Run the bot
     try:

@@ -60,3 +60,38 @@ async def get_research(uuid: str, token_payload: dict = Depends(verify_jwt_token
 async def generate_token(request: TokenRequest):
     token = create_jwt_token(request.user_id)
     return {"access_token": token, "token_type": "bearer"}
+
+class MessageIdUpdate(BaseModel):
+    message_id: int
+
+from src.db import update_research_message_id
+
+@app.patch("/api/research/{uuid}/message")
+async def update_message_id(uuid: str, body: MessageIdUpdate, token_payload: dict = Depends(verify_jwt_token)):
+    update_research_message_id(uuid, body.message_id)
+    return {"status": "ok"}
+
+class FollowupResearchBody(BaseModel):
+    user_id: int
+    keyword: str
+    parent_message_id: int
+
+from src.db import get_research_by_message_id
+
+@app.post("/api/research/followup")
+async def followup_research(body: FollowupResearchBody, token_payload: dict = Depends(verify_jwt_token)):
+    user = get_user(body.user_id)
+    if not user or not user.tos_agreed:
+        raise HTTPException(status_code=403, detail="Terms of Service not agreed")
+    
+    parent_research = get_research_by_message_id(body.parent_message_id)
+    if not parent_research:
+        raise HTTPException(status_code=404, detail="Parent research not found")
+    
+    context = parent_research.get("full_message", "")
+    
+    # Create a ResearchBodyModel for the new research
+    research_body = ResearchBodyModel(user_id=body.user_id, keyword=body.keyword)
+    
+    response = gemini_research(research_body, context=context)
+    return response

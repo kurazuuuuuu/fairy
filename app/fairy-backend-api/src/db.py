@@ -36,8 +36,20 @@ def get_research_result(uuid: str):
     collection = db[COLLECTION_NAME["RESEARCH_RESULTS"]]
     return collection.find_one({"_id": uuid})
 
+def update_research_message_id(uuid: str, message_id: int):
+    db = get_db()
+    collection = db[COLLECTION_NAME["RESEARCH_RESULTS"]]
+    collection.update_one({"_id": uuid}, {"$set": {"message_id": message_id}})
+
+def get_research_by_message_id(message_id: int):
+    db = get_db()
+    collection = db[COLLECTION_NAME["RESEARCH_RESULTS"]]
+    return collection.find_one({"message_id": message_id})
+
 def init_db():
     """Initialize database indexes"""
     db = get_db()
     # Create index for user_id in research_results to optimize user-based queries
     db[COLLECTION_NAME["RESEARCH_RESULTS"]].create_index("user_id")
+    # Create index for message_id to optimize follow-up research lookups
+    db[COLLECTION_NAME["RESEARCH_RESULTS"]].create_index("message_id")

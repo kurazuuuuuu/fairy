@@ -31,16 +31,13 @@ def load_api_key():
 def get_today():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-def perform_research(keyword: str):
+def perform_research(keyword: str, context: str = None):
     """Stage 1: Research - Gather information using Google Search"""
     client = genai.Client(api_key=load_api_key())
     today = get_today()
     model = "gemini-2.5-flash-lite"
 
-    generate_content_config = types.GenerateContentConfig(
-        tools=[types.Tool(google_search=types.GoogleSearch())],
-        system_instruction=[
-            types.Part.from_text(text=f"""あなたは優秀なリサーチャーです。
+    system_instruction_text = f"""あなたは優秀なリサーチャーです。
 入力されたキーワードに関する情報をGoogle検索を使用して収集し、詳細なレポートを作成してください。
 - **レポートは必ず英語でできる限り詳細に記述してください。**
 - 最新の情報({today}時点)を取得すること。
@@ -48,7 +45,15 @@ def perform_research(keyword: str):
 - 基本的に日本語・英語の言語で検索を行い、世界中の情報を活用すること。情報の特性により、必要に応じて日本語や英語以外の言語のWebサイトも参照すること。
 - 技術情報、統計データ、ニュース、トレンドなどを網羅的に調査すること。
 - 出力はプレーンテキストで構いませんが、情報の出典(URL)は必ず明記し、内部的に保持されるようにしてください。
-"""),
+"""
+
+    if context:
+        system_instruction_text += f"\n\n# 前回の調査結果（コンテキスト）\n以下の情報は前回の調査結果です。今回の調査はこの内容を踏まえた上で、追加情報や深掘りを行ってください。\n{context}"
+
+    generate_content_config = types.GenerateContentConfig(
+        tools=[types.Tool(google_search=types.GoogleSearch())],
+        system_instruction=[
+            types.Part.from_text(text=system_instruction_text),
         ],
     )
 
@@ -240,19 +245,21 @@ def process_encoding(research_text: str) -> dict:
     try:
         result_json = json.loads(encoding_response.text)
     except json.JSONDecodeError:
-        result_json = {"smart_message": "エラー：応答の解析に失敗しました。", "full_message": encoding_response.text}
+        result_json = {"smart_message": "エラー：応答の解析に失敗しました。再度リクエストを送信してください。", "full_message": encoding_response.text}
     
     return result_json
 
-def gemini_research(body: ResearchBodyModel):
+def gemini_research(body: ResearchBodyModel, context: str = None):
     time_start = time.time()
     
     logger.info(f"--- Research Start ---")
     logger.info(f"User ID: {body.user_id}")
     logger.info(f"Keyword: {body.keyword}")
+    if context:
+        logger.info(f"Context provided (Length: {len(context)})")
 
     # Stage 1: Research
-    research_response = perform_research(body.keyword)
+    research_response = perform_research(body.keyword, context)
     if not research_response.text:
         raise ValueError("Research content is empty")
     
