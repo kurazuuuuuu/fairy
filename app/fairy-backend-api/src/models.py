@@ -24,10 +24,11 @@ class ResearchResponseModel(BaseModel):
     message_id: int
     owner: int
     keyword: str
-    smart_message: str = Field(max_length=600)
+    smart_message: str = Field(max_length=1000)
     full_message: str
     time: Optional[float]
     urls: List[UrlMetadata] = []
+    urls_excluded_count: int = 0
     primary_research_result: UUID4 
     created_at: datetime
     updated_at: datetime

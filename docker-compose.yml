@@ -9,6 +9,7 @@ services:
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - MONGODB_URI=mongodb://fairy-mongodb:27017
+      - JWT_SECRET=${JWT_SECRET}
     restart: unless-stopped
     depends_on:
       - fairy-mongodb

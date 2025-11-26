@@ -7,6 +7,8 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 security = HTTPBearer()
 
 JWT_SECRET = os.getenv("JWT_SECRET")
+if JWT_SECRET is None:
+    raise ValueError("JWT_SECRET is not set in the environment variables.")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
 

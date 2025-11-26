@@ -11,6 +11,9 @@ from google import genai
 from google.genai import types
 from datetime import datetime
 import json
+import requests
+import concurrent.futures
+from bs4 import BeautifulSoup
 
 from src.models import ResearchBodyModel, ResearchResponseModel, UrlMetadata
 from src.db import save_research_result
@@ -138,6 +141,28 @@ def generate_fairy_response(research_text: str):
         logger.error(f"Gemini API Error (Encoding Stage): {e}")
         raise e
 
+def resolve_redirect(url: str) -> tuple[str, str | None] | None:
+    try:
+        # Use honest User-Agent
+        headers = {'User-Agent': 'FairyBot/1.0'}
+        # Use get to fetch content for title extraction
+        response = requests.get(url, allow_redirects=True, timeout=5, headers=headers)
+        
+        if response.status_code == 200:
+            final_url = response.url
+            try:
+                soup = BeautifulSoup(response.text, 'html.parser')
+                title = soup.title.string.strip() if soup.title and soup.title.string else None
+            except Exception:
+                title = None
+            return final_url, title
+        else:
+            logger.warning(f"Excluded URL {url} due to status code: {response.status_code}")
+            return None
+    except Exception as e:
+        logger.warning(f"Failed to resolve redirect for {url}: {e}")
+        return None
+
 def gemini_research(body: ResearchBodyModel):
     time_start = time.time()
     
@@ -166,12 +191,44 @@ def gemini_research(body: ResearchBodyModel):
                         title=chunk.web.title or "No Title"
                     ))
 
-    # Deduplicate URLs
-    unique_urls = {}
+    # Deduplicate by initial URL first to minimize requests
+    initial_unique_map = {}
     for u in url_objects:
-        if u.url not in unique_urls:
-            unique_urls[u.url] = u
-    url_objects = list(unique_urls.values())
+        if u.url not in initial_unique_map:
+            initial_unique_map[u.url] = u
+    
+    unique_url_objects = list(initial_unique_map.values())
+
+    # Parallel resolve
+    resolved_url_objects = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        # Create a map of {future: url_object}
+        future_to_url = {executor.submit(resolve_redirect, u.url): u for u in unique_url_objects}
+        
+        for future in concurrent.futures.as_completed(future_to_url):
+            u = future_to_url[future]
+            try:
+                result = future.result()
+                if result:
+                    resolved_url, fetched_title = result
+                    u.url = resolved_url
+                    if fetched_title:
+                        u.title = fetched_title
+                    resolved_url_objects.append(u)
+            except Exception as e:
+                logger.error(f"Error resolving URL for {u.url}: {e}")
+
+    # Calculate excluded count (Total unique initial URLs - Successful resolved URLs)
+    # Note: This count includes URLs that failed to resolve or returned non-200 status
+    urls_excluded_count = len(unique_url_objects) - len(resolved_url_objects)
+
+    # Deduplicate by resolved URL
+    final_unique_urls = {}
+    for u in resolved_url_objects:
+        if u.url not in final_unique_urls:
+            final_unique_urls[u.url] = u
+            
+    url_objects = list(final_unique_urls.values())
 
     # Stage 2: Encoding (Persona)
     encoding_response = generate_fairy_response(research_response.text)
@@ -202,6 +259,7 @@ def gemini_research(body: ResearchBodyModel):
         full_message=result_json.get('full_message', ''),
         time=processing_time,
         urls=url_objects,
+        urls_excluded_count=urls_excluded_count,
         primary_research_result=uuid.uuid4(), # Placeholder
         created_at=datetime.now(),
         updated_at=datetime.now()
