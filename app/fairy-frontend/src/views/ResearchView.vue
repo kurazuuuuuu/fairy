@@ -6,6 +6,7 @@
       <h1>{{ research.keyword }}</h1>
       <div class="meta">
         <p>処理時間: {{ research.time }}秒</p>
+        <p v-if="research.urls_excluded_count > 0" class="excluded-count">除外されたURL: {{ research.urls_excluded_count }}件 (アクセス不可またはポリシーによる)</p>
         <p>作成日時: {{ new Date(research.created_at).toLocaleString('ja-JP') }}</p>
       </div>
       <div class="message-container">
@@ -23,8 +24,8 @@
               <img :src="getFaviconUrl(urlData.url || urlData)" :alt="urlData.title || urlData.url || urlData" />
             </div>
             <div class="url-info">
-              <div class="url-title">{{ urlData.title || getHostname(urlData.url || urlData) }}</div>
-              <div class="url-link">{{ urlData.url || urlData }}</div>
+              <div class="url-title">{{ (urlData.title && urlData.title !== 'No Title') ? urlData.title : (urlData.url || urlData) }}</div>
+              <div class="url-link">{{ getHostname(urlData.url || urlData) }}</div>
             </div>
           </a>
         </div>
@@ -70,7 +71,7 @@ const getFaviconUrl = (url: string) => {
 onMounted(async () => {
   try {
     const uuid = route.params.uuid
-    const apiUrl = import.meta.env.VITE_API_URL || ''
+    const apiUrl = import.meta.env.BACKEND_API_URL || ''
     const response = await fetchWithAuth(`${apiUrl}/api/research/${uuid}`)
     if (!response.ok) {
       throw new Error('リサーチ結果が見つかりませんでした')
@@ -143,6 +144,11 @@ onMounted(async () => {
 
 .meta p {
   margin: 5px 0;
+}
+
+.excluded-count {
+  color: #ff6b6b;
+  font-size: 0.9em;
 }
 
 .message-container {

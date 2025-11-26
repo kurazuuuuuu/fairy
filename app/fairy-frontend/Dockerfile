@@ -8,21 +8,21 @@ RUN npm install
 
 COPY . .
 
-ARG VITE_API_URL=
-ENV VITE_API_URL=$VITE_API_URL
+ARG BACKEND_API_URL=
+ENV BACKEND_API_URL=$BACKEND_API_URL
 
 RUN npm run build
 
 FROM nginx:alpine
 
 COPY --from=0 /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf.template
 
 COPY <<'EOF' /docker-entrypoint.d/40-envsubst-on-config.sh
 #!/bin/sh
 set -e
-envsubst < /usr/share/nginx/html/index.html > /tmp/index.html
-mv /tmp/index.html /usr/share/nginx/html/index.html
+# Substitute BACKEND_API_URL in nginx config
+envsubst '${BACKEND_API_URL}' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
 EOF
 
 RUN chmod +x /docker-entrypoint.d/40-envsubst-on-config.sh

@@ -12,9 +12,23 @@ class UrlMetadata(BaseModel):
     description: Optional[str] = None
     image: Optional[str] = None
 
+class UserModel(BaseModel):
+    user_id: int
+    research_list: list[str] = []
+    tos_agreed: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
 class ResearchResponseModel(BaseModel):
     uuid: UUID4
+    message_id: int
     owner: int
-    smart_message: str = Field(max_length=2000)
+    keyword: str
+    smart_message: str = Field(max_length=1000)
     full_message: str
     time: Optional[float]
+    urls: List[UrlMetadata] = []
+    urls_excluded_count: int = 0
+    primary_research_result: UUID4 
+    created_at: datetime
+    updated_at: datetime

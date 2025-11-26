@@ -13,4 +13,5 @@ dependencies = [
     "pymongo>=4.15.3",
     "bs4>=0.0.2",
     "pyjwt>=2.8.0",
+    "requests>=2.31.0",
 ]

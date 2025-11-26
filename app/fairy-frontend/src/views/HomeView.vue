@@ -1,60 +1,35 @@
 <script setup lang="ts">
+import { BrandDiscordIcon } from 'vue-tabler-icons';
+const discordInviteUrl = import.meta.env.VITE_DISCORD_INVITE_URL
 </script>
 
 <template>
   <main class="home">
     <div class="container">
-      <h1>高性能リサーチAIBot「Fairy」</h1>
-      <p class="subtitle">ゼンレスゾーンゼロの「Fairy」をモチーフにしたリサーチ用DiscordBot</p>
+      <section class="hero">
+        <img src="/images/fairy.webp" alt="Fairy Logo" class="hero-logo" />
+        <h1 class="hero-title">Fairy</h1>
+        <p class="hero-subtitle">助手1号</p>
+      </section>
       
-      <section class="overview">
-        <h2>概要</h2>
-        <ul>
-          <li>Google Geminiを使用したリサーチ用Bot</li>
-          <li>Deep Researchほどの精度は求めず、簡単な情報収集を目的としている</li>
-          <li>インターネット検索によるグラウンディングを行い、最新情報をなるべく収集する</li>
-          <li>Discordの中だけではなく外部サイトとの連携でより詳細な情報にアクセスすることができる</li>
-        </ul>
+      <section class="content-section overview">
+        <p>HoyoverseのアクションRPG「ゼンレスゾーンゼロ」に登場するFairyというAIアシスタントをモチーフにしたリサーチAIBot。Discord上で簡易的なリサーチ結果を確認でき、より詳細な情報や参照URLなどを発行されたURLからブラウザ上で閲覧可能。URLを共有することでDiscord外でもリサーチ結果を共有することができる。</p>
       </section>
 
-      <section class="usage">
-        <h2>使い方</h2>
+      <section class="content-section usage">
         <ol>
-          <li><code>@fairy</code>のようにメンションを行い、その後に<strong>聞きたい内容</strong>を入力して送信する。
-            <ul>
-              <li>例: <code>@fairy ゼンレスゾーンゼロの最新アップデートについて教えて</code></li>
-            </ul>
-          </li>
-          <li>Botが情報を収集し、回答を返すまで少し時間がかかります。</li>
-          <li>情報収集が完了し、生成した回答が返答されます。また、より詳細な情報や参照したサイトのURLは外部リンク（Web側）にアップロードされているためそちらから確認をすることができます。</li>
+          <li>Discord上で<code>@fairy Zenless Zone Zero</code>のように入力してください。</li>
+          <li>Fairyがホロウを探索して情報を収集します。</li>
+          <li>探索が完了し、生成した回答が返答されます。また、より詳細な情報や参照したサイトのURLは外部リンクからアクセスすることができます。</li>
         </ol>
       </section>
 
-      <section class="tech">
-        <h2>技術構成</h2>
-        <div class="tech-grid">
-          <div class="tech-item">
-            <h3>Discord</h3>
-            <ul>
-              <li>Python</li>
-              <li>discord.py</li>
-            </ul>
-          </div>
-          <div class="tech-item">
-            <h3>Web (Frontend)</h3>
-            <ul>
-              <li>Vue.js (Vite)</li>
-            </ul>
-          </div>
-          <div class="tech-item">
-            <h3>Web & Discord (Backend)</h3>
-            <ul>
-              <li>Python (FastAPI)</li>
-              <li>Google Gemini 2.5 Flash</li>
-              <li>MongoDB (NoSQL)</li>
-            </ul>
-          </div>
-        </div>
+      <section class="content-section invite">
+        <p>Fairyをあなたのサーバーに招待しましょう。</p>
+        <a :href="discordInviteUrl" target="_blank" rel="noopener noreferrer" class="invite-button">
+          <BrandDiscordIcon size="24" class="icon" />
+          <span>Invite to Server</span>
+        </a>
       </section>
     </div>
   </main>
@@ -72,93 +47,100 @@
     #181718 10px
   );
   padding: 60px 20px;
+  color: #e0e0e0;
 }
 
 .container {
-  max-width: 900px;
+  max-width: 800px;
   margin: 0 auto;
 }
 
-h1 {
+.hero {
+  text-align: center;
+  margin-bottom: 80px;
+  padding-top: 40px;
+}
+
+.hero-logo {
+  width: 120px;
+  height: 120px;
+  margin-bottom: 20px;
+  border-radius: 50%;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.1));
+}
+
+.hero-title {
   color: #ffffff;
-  font-size: 2.2em;
-  margin-bottom: 10px;
-  font-weight: 400;
-  letter-spacing: 0.05em;
+  font-size: 3.5em;
+  margin: 0;
+  font-weight: 300;
 }
 
-.subtitle {
-  color: #cccccc;
-  font-size: 0.95em;
+.hero-subtitle {
+  color: #888;
+  font-size: 1.1em;
+  margin-top: 10px;
+  font-weight: 300;
+}
+
+.content-section {
   margin-bottom: 60px;
-  font-weight: 400;
-}
-
-section {
-  margin-bottom: 50px;
+  background: rgba(42, 41, 42, 0.5);
+  padding: 30px;
+  border-radius: 12px;
+  border: 1px solid #333;
 }
 
 h2 {
   color: #ffffff;
-  font-size: 1.4em;
-  margin-bottom: 20px;
+  font-size: 1.5em;
+  margin-bottom: 25px;
   font-weight: 400;
   letter-spacing: 0.05em;
+  border-bottom: 1px solid #444;
+  padding-bottom: 10px;
 }
 
 ul, ol {
-  line-height: 1.9;
-  color: #e0e0e0;
-  font-weight: 400;
+  line-height: 1.8;
+  padding-left: 20px;
 }
 
-ul li, ol li {
-  margin-bottom: 10px;
+li {
+  margin-bottom: 12px;
 }
 
 code {
   background: #181718;
   padding: 3px 8px;
   border-radius: 4px;
-  color: #e0e0e0;
+  color: #aaddff;
   font-family: 'Courier New', monospace;
   font-size: 0.9em;
 }
 
-.tech-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
+.invite {
+  text-align: center;
 }
 
-.tech-item {
-  background: #2a292a;
-  padding: 24px;
-  border-radius: 8px;
-  border: 1px solid #181718;
-  transition: all 0.2s ease;
+.invite p {
+  margin-bottom: 25px;
 }
 
-.tech-item:hover {
-  background: #323132;
-  border-color: #3a393a;
+.invite-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #5865F2;
+  color: white;
+  padding: 12px 30px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background 0.2s;
 }
 
-.tech-item h3 {
-  color: #ffffff;
-  margin-bottom: 16px;
-  font-size: 1.2em;
-  font-weight: 600;
-}
-
-.tech-item ul {
-  list-style: none;
-  padding: 0;
-}
-
-.tech-item li {
-  padding: 6px 0;
-  color: #e0e0e0;
-  font-size: 0.95em;
+.invite-button:hover {
+  background: #4752C4;
 }
 </style>
