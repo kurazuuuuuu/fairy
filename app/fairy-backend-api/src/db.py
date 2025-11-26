@@ -33,5 +33,5 @@ def save_research_result(research: ResearchResponseModel):
 
 def get_research_result(uuid: str):
     db = get_db()
-    collection = db[COLLECTION_NAME]
+    collection = db[COLLECTION_NAME["RESEARCH_RESULTS"]]
     return collection.find_one({"_id": uuid})

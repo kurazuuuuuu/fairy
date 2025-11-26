@@ -1,3 +1,5 @@
+import logging
+
 # To run this code you need to install the following dependencies:
 # pip install google-genai
 
@@ -13,6 +15,8 @@ import json
 from src.models import ResearchBodyModel, ResearchResponseModel, UrlMetadata
 from src.db import save_research_result
 from src.users import add_research_to_user
+
+logger = logging.getLogger("uvicorn")
 
 def load_api_key():
     load_dotenv()
@@ -62,7 +66,7 @@ def perform_research(keyword: str):
         )
         return response
     except Exception as e:
-        print(f"Gemini API Error (Research Stage): {e}")
+        logger.error(f"Gemini API Error (Research Stage): {e}")
         raise e
 
 def generate_fairy_response(research_text: str):
@@ -131,24 +135,24 @@ def generate_fairy_response(research_text: str):
         )
         return response
     except Exception as e:
-        print(f"Gemini API Error (Encoding Stage): {e}")
+        logger.error(f"Gemini API Error (Encoding Stage): {e}")
         raise e
 
 def gemini_research(body: ResearchBodyModel):
     time_start = time.time()
     
-    print(f"--- Research Start ---")
-    print(f"User ID: {body.user_id}")
-    print(f"Keyword: {body.keyword}")
+    logger.info(f"--- Research Start ---")
+    logger.info(f"User ID: {body.user_id}")
+    logger.info(f"Keyword: {body.keyword}")
 
     # Stage 1: Research
     research_response = perform_research(body.keyword)
     if not research_response.text:
         raise ValueError("Research content is empty")
     
-    print(f"--- Pre-Research Log ---")
-    print(research_response.text)
-    print(f"------------------------")
+    logger.info(f"--- Pre-Research Log ---")
+    logger.info(research_response.text)
+    logger.info(f"------------------------")
     
     # Extract URLs from Research Stage
     url_objects = []
@@ -180,9 +184,9 @@ def gemini_research(body: ResearchBodyModel):
     except json.JSONDecodeError:
         result_json = {"smart_message": "エラー：応答の解析に失敗しました。", "full_message": encoding_response.text}
 
-    print(f"--- Post-Research Result Log ---")
-    print(json.dumps(result_json, indent=2, ensure_ascii=False))
-    print(f"--------------------------------")
+    logger.info(f"--- Post-Research Result Log ---")
+    logger.info(json.dumps(result_json, indent=2, ensure_ascii=False))
+    logger.info(f"--------------------------------")
 
     time_end = time.time()
     processing_time = round(time_end - time_start, 3)
@@ -203,7 +207,7 @@ def gemini_research(body: ResearchBodyModel):
         updated_at=datetime.now()
     )
 
-    print(f"Saving URLs to DB: {len(url_objects)} urls")
+    logger.info(f"Saving URLs to DB: {len(url_objects)} urls")
     save_research_result(response_model)
     
     # Add research to user list

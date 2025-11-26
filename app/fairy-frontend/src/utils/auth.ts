@@ -13,7 +13,7 @@ export async function getToken(): Promise<string> {
 
 async function generateToken(): Promise<string> {
   const userId = getUserId()
-  const apiUrl = (window as any).ENV?.VITE_API_URL || import.meta.env.VITE_API_URL || ''
+  const apiUrl = (window as any).ENV?.BACKEND_API_URL || import.meta.env.BACKEND_API_URL || ''
   
   const response = await fetch(`${apiUrl}/api/auth/token`, {
     method: 'POST',

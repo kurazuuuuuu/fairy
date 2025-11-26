@@ -5,4 +5,6 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:80"
+    environment:
+      - BACKEND_API_URL=${BACKEND_API_URL}
     restart: unless-stopped

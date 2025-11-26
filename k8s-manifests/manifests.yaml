@@ -120,8 +120,8 @@ spec:
             memory: "512Mi"
             cpu: "500m"
         env:
-        - name: VITE_API_URL
-          value: "https://fairy.krz-tech.net"
+        - name: BACKEND_API_URL
+          value: "https://fairy.krz-tech.net/api"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
