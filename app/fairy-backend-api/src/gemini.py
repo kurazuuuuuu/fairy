@@ -161,7 +161,7 @@ def resolve_redirect(url: str) -> tuple[str, str | None] | None:
             final_url = response.url
             try:
                 soup = BeautifulSoup(response.text, 'html.parser')
-                title = soup.title.string.strip() if soup.title and soup.title.string else None
+                title = str(soup.title.string.strip()) if soup.title and soup.title.string else None
             except Exception:
                 title = None
             return final_url, title
@@ -196,8 +196,8 @@ def gemini_research(body: ResearchBodyModel):
             for chunk in grounding_metadata.grounding_chunks:
                 if chunk.web:
                     url_objects.append(UrlMetadata(
-                        url=chunk.web.uri,
-                        title=chunk.web.title or "No Title"
+                        url=str(chunk.web.uri),
+                        title=str(chunk.web.title or "No Title")
                     ))
 
 def process_urls(url_objects: list[UrlMetadata]) -> tuple[list[UrlMetadata], int]:
@@ -223,7 +223,7 @@ def process_urls(url_objects: list[UrlMetadata]) -> tuple[list[UrlMetadata], int
                     resolved_url, fetched_title = result
                     u.url = resolved_url
                     if fetched_title:
-                        u.title = fetched_title
+                        u.title = str(fetched_title)
                     resolved_url_objects.append(u)
             except Exception as e:
                 logger.error(f"Error resolving URL for {u.url}: {e}")
@@ -249,7 +249,7 @@ def process_encoding(research_text: str) -> dict:
     try:
         result_json = json.loads(encoding_response.text)
     except json.JSONDecodeError:
-        result_json = {"smart_message": "エラー：応答の解析に失敗しました。再度リクエストを送信してください。", "full_message": encoding_response.text}
+        result_json = {"smart_message": "エラー：応答の解析に失敗しました。再度リクエストを送信してください。", "full_message": str(encoding_response.text)}
     
     token_count = 0
     if encoding_response.usage_metadata:
@@ -283,8 +283,8 @@ def gemini_research(body: ResearchBodyModel, context: str = None):
             for chunk in grounding_metadata.grounding_chunks:
                 if chunk.web:
                     url_objects.append(UrlMetadata(
-                        url=chunk.web.uri,
-                        title=chunk.web.title or "No Title"
+                        url=str(chunk.web.uri),
+                        title=str(chunk.web.title or "No Title")
                     ))
 
     # Parallel Execution of Stage 2 (Encoding) and URL Processing
@@ -317,9 +317,9 @@ def gemini_research(body: ResearchBodyModel, context: str = None):
         uuid=research_uuid,
         message_id=0, # Placeholder
         owner=body.user_id,
-        keyword=body.keyword,
-        smart_message=result_json.get('smart_message', ''),
-        full_message=result_json.get('full_message', ''),
+        keyword=str(body.keyword),
+        smart_message=str(result_json.get('smart_message', '')),
+        full_message=str(result_json.get('full_message', '')),
         time=processing_time,
         urls=final_url_objects,
         urls_excluded_count=urls_excluded_count,
