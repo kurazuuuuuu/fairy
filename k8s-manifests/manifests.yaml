@@ -29,6 +29,18 @@ spec:
           limits:
             memory: "2Gi"
             cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
         env:
         - name: GEMINI_API_KEY
           valueFrom:
@@ -119,6 +131,18 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
         env:
         - name: BACKEND_API_URL
           value: "https://fairy.krz-tech.net/api"
@@ -163,6 +187,19 @@ spec:
           limits:
             memory: "1Gi"
             cpu: "1000m"
+        livenessProbe:
+          tcpSocket:
+            port: 27017
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - mongo
+            - --eval
+            - "db.adminCommand('ping')"
+          initialDelaySeconds: 5
+          periodSeconds: 10
         volumeMounts:
         - name: mongodb-storage
           mountPath: /data/db
