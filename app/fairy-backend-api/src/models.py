@@ -24,7 +24,7 @@ class ResearchResponseModel(BaseModel):
     message_id: int
     owner: int
     keyword: str
-    smart_message: str = Field(max_length=2000)
+    smart_message: str = Field(max_length=600)
     full_message: str
     time: Optional[float]
     urls: List[UrlMetadata] = []

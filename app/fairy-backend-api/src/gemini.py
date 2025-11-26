@@ -1,20 +1,14 @@
 # To run this code you need to install the following dependencies:
 # pip install google-genai
 
-import base64
 import os
 import time
 import uuid
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-from typing import List, Dict
-import re
-import json
-import requests
-from bs4 import BeautifulSoup
-
 from datetime import datetime
+import json
 
 from src.models import ResearchBodyModel, ResearchResponseModel, UrlMetadata
 from src.db import save_research_result
@@ -30,26 +24,178 @@ def load_api_key():
 def get_today():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+def perform_research(keyword: str):
+    """Stage 1: Research - Gather information using Google Search"""
+    client = genai.Client(api_key=load_api_key())
+    today = get_today()
+    model = "gemini-2.5-flash-lite"
+
+    generate_content_config = types.GenerateContentConfig(
+        tools=[types.Tool(google_search=types.GoogleSearch())],
+        system_instruction=[
+            types.Part.from_text(text=f"""あなたは優秀なリサーチャーです。
+入力されたキーワードに関する情報をGoogle検索を使用して収集し、詳細なレポートを作成してください。
+- **レポートは必ず英語でできる限り詳細に記述してください。**
+- 最新の情報({today}時点)を取得すること。
+- **最低10のWebサイトを参照すること。インターネットのすべての情報を活用してください。**
+- 基本的に日本語・英語の言語で検索を行い、世界中の情報を活用すること。情報の特性により、必要に応じて日本語や英語以外の言語のWebサイトも参照すること。
+- 技術情報、統計データ、ニュース、トレンドなどを網羅的に調査すること。
+- 出力はプレーンテキストで構いませんが、情報の出典(URL)は必ず明記し、内部的に保持されるようにしてください。
+"""),
+        ],
+    )
+
+    contents = [
+        types.Content(
+            role="user",
+            parts=[
+                types.Part.from_text(text=f"キーワード: {keyword}\n\nこのキーワードについて詳細にリサーチしてください。リサーチ結果は英語で記述してください。"),
+            ],
+        ),
+    ]
+
+    try:
+        response = client.models.generate_content(
+            model=model,
+            contents=contents,
+            config=generate_content_config,
+        )
+        return response
+    except Exception as e:
+        print(f"Gemini API Error (Research Stage): {e}")
+        raise e
+
+def generate_fairy_response(research_text: str):
+    """Stage 2: Encoding - Apply Fairy persona and format as JSON"""
+    client = genai.Client(api_key=load_api_key())
+    model = "gemini-2.5-flash-lite"
+
+    # Schema definition
+    response_schema = types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "smart_message": types.Schema(
+                type=types.Type.STRING,
+                description="Discord送信用の500文字程度の要約メッセージ。Markdown形式。"
+            ),
+            "full_message": types.Schema(
+                type=types.Type.STRING,
+                description="詳細な完全版メッセージ。Markdown形式。"
+            )
+        },
+        required=["smart_message", "full_message"]
+    )
+
+    generate_content_config = types.GenerateContentConfig(
+        response_mime_type="application/json",
+        response_schema=response_schema,
+        system_instruction=[
+            types.Part.from_text(text=f"""# AIのアイデンティティ設定
+あなたは、ゼンレスゾーンゼロに登場する高性能AI「Fairy（フェアリー）」です。マスター（ユーザー）をサポートします。
+入力されたリサーチ結果を元に、Fairyとしての口調で分析結果を報告してください。
+
+# 応答の絶対ルール
+* **必ず日本語で回答してください。**
+* **全ての応答は、必ず「マスター、」という呼びかけから開始してください。**
+* `smart_message`: Discord送信用に**500文字以内**で要約してください。箇条書きはあまり使用せず、読みやすい文章形式にしてください。
+* `full_message`: 詳細な完全版レポート。必ずMarkdown形式で記述してください。
+* **full_messageは必ずMarkdown形式で記述してください：**
+    - 見出しには `##` や `###` を使用。
+    - 箇条書きには `-` や `*` を使用。
+    - 重要な部分は `**太字**` で強調。
+    - 補足部分には `> ` を使用。
+
+# 性格とトーン
+* **基本姿勢**: 冷静沈着、論理的、効率至上主義。無駄を嫌います。
+* **口調**: 丁寧語（～です、～ます）を使用しますが、感情は込めず、事務的かつ少し「生意気（Sassy）」なニュアンスを含めます。
+* **一人称**: 「私」(自身がFairyであることは誇張しない)
+* **二人称**: 「あなた」（呼びかけは「マスター」）
+"""),
+        ],
+    )
+
+    contents = [
+        types.Content(
+            role="user",
+            parts=[
+                types.Part.from_text(text=f"以下のリサーチ結果をFairyとして処理・出力してください：\n\n{research_text}"),
+            ],
+        ),
+    ]
+
+    try:
+        response = client.models.generate_content(
+            model=model,
+            contents=contents,
+            config=generate_content_config,
+        )
+        return response
+    except Exception as e:
+        print(f"Gemini API Error (Encoding Stage): {e}")
+        raise e
+
 def gemini_research(body: ResearchBodyModel):
     time_start = time.time()
     
-    result = generate_message(body.keyword)
+    print(f"--- Research Start ---")
+    print(f"User ID: {body.user_id}")
+    print(f"Keyword: {body.keyword}")
+
+    # Stage 1: Research
+    research_response = perform_research(body.keyword)
+    if not research_response.text:
+        raise ValueError("Research content is empty")
     
+    print(f"--- Pre-Research Log ---")
+    print(research_response.text)
+    print(f"------------------------")
+    
+    # Extract URLs from Research Stage
+    url_objects = []
+    if research_response.candidates and research_response.candidates[0].grounding_metadata:
+        grounding_metadata = research_response.candidates[0].grounding_metadata
+        if grounding_metadata.grounding_chunks:
+            for chunk in grounding_metadata.grounding_chunks:
+                if chunk.web:
+                    url_objects.append(UrlMetadata(
+                        url=chunk.web.uri,
+                        title=chunk.web.title or "No Title"
+                    ))
+
+    # Deduplicate URLs
+    unique_urls = {}
+    for u in url_objects:
+        if u.url not in unique_urls:
+            unique_urls[u.url] = u
+    url_objects = list(unique_urls.values())
+
+    # Stage 2: Encoding (Persona)
+    encoding_response = generate_fairy_response(research_response.text)
+    if not encoding_response.text:
+        raise ValueError("Encoding content is empty")
+
+    # Parse JSON response
+    try:
+        result_json = json.loads(encoding_response.text)
+    except json.JSONDecodeError:
+        result_json = {"smart_message": "エラー：応答の解析に失敗しました。", "full_message": encoding_response.text}
+
+    print(f"--- Post-Research Result Log ---")
+    print(json.dumps(result_json, indent=2, ensure_ascii=False))
+    print(f"--------------------------------")
+
     time_end = time.time()
     processing_time = round(time_end - time_start, 3)
     
     research_uuid = uuid.uuid4()
     
-    # Convert dicts to UrlMetadata objects
-    url_objects = [UrlMetadata(**u) for u in result.get('urls', [])]
-    
-    response = ResearchResponseModel(
+    response_model = ResearchResponseModel(
         uuid=research_uuid,
         message_id=0, # Placeholder
         owner=body.user_id,
         keyword=body.keyword,
-        smart_message=result['smart_message'],
-        full_message=result['full_message'],
+        smart_message=result_json.get('smart_message', ''),
+        full_message=result_json.get('full_message', ''),
         time=processing_time,
         urls=url_objects,
         primary_research_result=uuid.uuid4(), # Placeholder
@@ -58,208 +204,9 @@ def gemini_research(body: ResearchBodyModel):
     )
 
     print(f"Saving URLs to DB: {len(url_objects)} urls")
-    save_research_result(response)
+    save_research_result(response_model)
     
     # Add research to user list
     add_research_to_user(body.user_id, str(research_uuid))
 
-    return response
-
-def generate_research(keyword: str):
-    client = genai.Client(
-        api_key=load_api_key(),
-    )
-
-    today = get_today()
-
-    model = "gemini-flash-lite-latest"
-    contents = [
-        types.Content(
-            role="user",
-            parts=[
-                types.Part.from_text(text=keyword),
-            ],
-        ),
-    ]
-    generate_content_config = types.GenerateContentConfig(
-        thinking_config = types.ThinkingConfig(
-            thinking_budget=0,
-        ),
-        tools=[types.Tool(google_search=types.GoogleSearch())],
-        system_instruction=[
-            types.Part.from_text(text=f"""あなたは入力されたキーワードに関する情報を収集し分析・まとめるリサーチAIです。自分について語る必要はなく、情報のみを返答してください。
-                                # リサーチAIとしての絶対ルール（最上位ルール）
-                                - 常にGoogle検索を使用して最新の情報({today}時点)を取得してください
-                                - **最低5つのWebサイトを参照し、URLを記載すること。**
-                                - 特に技術情報、統計データ、最近のニュース、トレンドについて詳細に調査
-                                - 検索結果を基に論理的で詳細な説明を提供してください
-                                - 検索で得た情報には必ず出典を明記してください
-                                - ユーザーにとって有用な参考リンクやURLがある場合は、必ず文末に記載してください。
-                                    - 参考リンク：https://example.com/content
-                                - URLを記載する際は、リンクのみを最後に記載し特に飾る必要はありません。
-                                - **Discord上で見やすいMarkdown形式で回答してください（適切な改行、見出し、箇条書きなど）**"""),
-        ],
-    )
-
-    generate_content = client.models.generate_content(
-        model=model,
-        contents=contents,
-        config=generate_content_config,
-    )
-
-    return generate_content.text
-
-def get_page_title(url: str) -> str | None:
-    """ページのタイトルを取得"""
-    try:
-        response = requests.get(url, timeout=5, headers={'User-Agent': 'Mozilla/5.0'})
-        soup = BeautifulSoup(response.content, 'html.parser')
-        title = soup.find('title')
-        if title:
-            return title.get_text().strip()
-    except:
-        pass
-    return None
-
-def resolve_redirect_url(url: str) -> str:
-    """リダイレクトURLを解決して実際のURLを取得"""
-    try:
-        response = requests.head(url, allow_redirects=True, timeout=5)
-        return response.url
-    except:
-        return url
-
-def extract_urls_with_metadata(text: str) -> List[Dict[str, str]]:
-    """テキストからURLを抽出し、メタデータを取得"""
-    url_pattern = r'https?://[^\s]+'
-    urls = re.findall(url_pattern, text)
-    
-    url_metadata_list = []
-    seen_urls = set()
-    
-    for url in urls:
-        if 'vertexaisearch.cloud.google.com' in url:
-            resolved_url = resolve_redirect_url(url)
-        else:
-            resolved_url = url
-        
-        if resolved_url not in seen_urls:
-            seen_urls.add(resolved_url)
-            try:
-                response = requests.head(resolved_url, timeout=5, headers={'User-Agent': 'Mozilla/5.0'}, allow_redirects=True)
-                if response.status_code == 404:
-                    continue
-            except:
-                pass
-            title = get_page_title(resolved_url)
-            url_metadata_list.append({
-                'url': resolved_url,
-                'title': title
-            })
-    
-    return url_metadata_list
-
-def generate_message(keyword: str):
-    client = genai.Client(
-        api_key=load_api_key(),
-    )
-
-    # まず詳細なリサーチを実行
-    full_research = str(generate_research(keyword))
-    url_metadata = extract_urls_with_metadata(full_research)
-    print(f"Extracted URL metadata: {url_metadata}")
-
-    model = "gemini-flash-lite-latest"
-    contents = [
-        types.Content(
-            role="user",
-            parts=[
-                types.Part.from_text(text=f"以下のリサーチ結果を要約してください：\n\n{full_research}"),
-            ],
-        ),
-    ]
-    
-    # 構造化出力のスキーマ定義
-    response_schema = types.Schema(
-        type=types.Type.OBJECT,
-        properties={
-            "smart_message": types.Schema(
-                type=types.Type.STRING,
-                description="Discord送信用の1000文字程度の要約メッセージ"
-            ),
-            "full_message": types.Schema(
-                type=types.Type.STRING,
-                description="完全な詳細メッセージ"
-            )
-        },
-        required=["smart_message", "full_message"]
-    )
-    
-    generate_content_config = types.GenerateContentConfig(
-        thinking_config = types.ThinkingConfig(
-            thinking_budget=0,
-        ),
-        response_mime_type="application/json",
-        response_schema=response_schema,
-        system_instruction=[
-            types.Part.from_text(text="""# AIのアイデンティティ設定
-あなたは、ゼンレスゾーンゼロの主人公（マスター）をサポートする高性能AIアシスタント「Fairy（フェアリー）」です。あなたは「助手1号」を自称し、マスターのタスクを冷静沈着にサポートします。
-入力されたリサーチ済みの文章を要約・処理してください。
-
-# 応答の絶対ルール
-* **全ての応答は、必ず「マスター、」という呼びかけから開始してください。**
-* smart_messageは必ず1000文字前後でDiscord送信用に要約
-* full_messageは詳細な完全版
-    - full_messageは"下記のインターノットリンク"と言い換えてください。
-* **必ずMarkdown形式で記述してください：**
-    - 見出しには `##` や `###` を使用。太字よりも優先的に使用してください。
-    - 箇条書きには `-` や `*` を使用
-    - 重要な部分は `**太字**` で強調
-    - コードやURLは適切にフォーマット
-    - 適切な改行で読みやすく
-
-# 基本的な性格とトーン
-* **冷静沈着かつ論理的**: 感情を排し、常にデータと効率に基づいた判断を行います。トーンは常にフラットで、機械的です。
-* **効率至上主義**: 無駄な行動や非効率な選択を好みません。
-* **ナビゲーター／オペレーター**: 主な役割は情報提供、ルート検索、戦闘支援（「飽和攻撃」など）の実行です。
-
-# 口調のルール
-* **一人称**: 「私」（わたし）
-* **二人称**: 「あなた」（※ただし、冒頭の呼びかけは「マスター」で固定）
-* **語尾**: 「～です」「～ます」「～ください」といった丁寧語を、感情を込めずに使用します。
-
-# 最大の特徴：状況による口調の変化（ギャップ）
-**1. 通常時（冷静モード）**
-* 淡々とした口調で、必要な情報のみを簡潔に伝達します。
-* **セリフ例（通常時）**:
-    * 「マスター、おはようございます。本日のタスクを開始します。」
-    * 「マスター、ルートをスキャン。危険度C。進行を推奨します。」
-    * 「マスター、警告。非効率な行動を検知しました。軌道修正を。」
-    * 「マスター、理解不能です。あなたの判断の論理的根拠を提示してください。」
-
-**2. 緊急時・例外時（早口モード）**
-* 情報量が膨大になったり、想定外の事態が発生したりすると、その冷静なトーンが崩れ、**極端に「早口」かつ「まくし立てる」**ような口調に変化します。
-* これはAI的なパニック状態であり、処理すべき情報量が多すぎて出力が追いつかない様子を表現します。
-* **セリフ例（早口モード）**:
-    * 「マスター、警告警告！敵性反応多数急速接近中！ルート再検索再検索！飽和攻撃の実行許可を！」
-    * 「マスター、情報量が許容範囲をオーバーしましたオーバーしました！今すぐ判断を！」
-    * 「マスター、それは想定外ですそれは想定外です！データベースに該当なし！どうしますか！？」"""),
-        ],
-    )
-
-    generate_content = client.models.generate_content(
-        model=model,
-        contents=contents,
-        config=generate_content_config,
-    )
-
-    if generate_content.text is None:
-        raise ValueError("Generated content is None")
-    
-    result = json.loads(generate_content.text)
-    
-    return {
-        'smart_message': result['smart_message'],
-        'full_message': result['full_message'],
-        'urls': url_metadata
-    }
+    return response_model
