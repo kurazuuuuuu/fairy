@@ -3,10 +3,14 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from src.models import ResearchBodyModel
 from src.gemini import gemini_research
-from src.db import get_research_result
+from src.db import get_research_result, init_db
 from src.auth import verify_jwt_token, create_jwt_token
 
 app = FastAPI()
+
+@app.on_event("startup")
+async def startup_event():
+    init_db()
 
 app.add_middleware(
     CORSMiddleware,

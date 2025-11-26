@@ -35,3 +35,9 @@ def get_research_result(uuid: str):
     db = get_db()
     collection = db[COLLECTION_NAME["RESEARCH_RESULTS"]]
     return collection.find_one({"_id": uuid})
+
+def init_db():
+    """Initialize database indexes"""
+    db = get_db()
+    # Create index for user_id in research_results to optimize user-based queries
+    db[COLLECTION_NAME["RESEARCH_RESULTS"]].create_index("user_id")
