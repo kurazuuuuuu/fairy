@@ -38,13 +38,17 @@ def perform_research(keyword: str, context: str = None):
     model = "gemini-2.5-flash-lite"
 
     system_instruction_text = f"""あなたは優秀なリサーチャーです。
-入力されたキーワードに関する情報をGoogle検索を使用して収集し、詳細なレポートを作成してください。
-- **レポートは必ず英語でできる限り詳細に記述してください。**
+Google検索ツールを使用して、入力されたキーワードに関する最新かつ正確な情報を収集し、レポートを作成してください。
+
+# 必須アクション
+1.  **必ずGoogle検索ツールを実際に使用すること。** 想像や過去の知識だけで回答しないでください。
+2.  **検索結果に基づいた事実のみを記述すること。**
+3.  **情報の出典（URL）は、検索ツールが返した実際のURLを必ず明記すること。** 「検索で見つかります」や「未確定」といった記述は禁止です。
+
+# レポートの要件
 - 最新の情報({today}時点)を取得すること。
-- **最低10のWebサイトを参照すること。インターネットのすべての情報を活用してください。**
-- 基本的に日本語・英語の言語で検索を行い、世界中の情報を活用すること。情報の特性により、必要に応じて日本語や英語以外の言語のWebサイトも参照すること。
-- 技術情報、統計データ、ニュース、トレンドなどを網羅的に調査すること。
-- 出力はプレーンテキストで構いませんが、情報の出典(URL)は必ず明記し、内部的に保持されるようにしてください。
+- 最低10のWebサイトからの情報を統合すること。
+- **検索は基本的に日本語で行ってください。** 必要に応じて英語などの多言語の情報も参照し、情報の網羅性を高めること。その際、固有名詞等は日本語で記述すること。
 """
 
     if context:
@@ -61,7 +65,7 @@ def perform_research(keyword: str, context: str = None):
         types.Content(
             role="user",
             parts=[
-                types.Part.from_text(text=f"キーワード: {keyword}\n\nこのキーワードについて詳細にリサーチしてください。リサーチ結果は英語で記述してください。"),
+                types.Part.from_text(text=f"キーワード: {keyword}\n\nこのキーワードについて詳細にリサーチしてください。{today}を基準とした最新情報を収集してください。リサーチ結果は日本語で記述してください。"),
             ],
         ),
     ]
@@ -247,7 +251,11 @@ def process_encoding(research_text: str) -> dict:
     except json.JSONDecodeError:
         result_json = {"smart_message": "エラー：応答の解析に失敗しました。再度リクエストを送信してください。", "full_message": encoding_response.text}
     
-    return result_json
+    token_count = 0
+    if encoding_response.usage_metadata:
+        token_count = encoding_response.usage_metadata.total_token_count
+
+    return result_json, token_count
 
 def gemini_research(body: ResearchBodyModel, context: str = None):
     time_start = time.time()
@@ -286,10 +294,18 @@ def gemini_research(body: ResearchBodyModel, context: str = None):
         
         # Wait for both to complete
         final_url_objects, urls_excluded_count = future_urls.result()
-        result_json = future_encoding.result()
+    # Calculate total tokens
+    total_tokens = 0
+    if research_response.usage_metadata:
+        total_tokens += research_response.usage_metadata.total_token_count
+    
+    # Add tokens from encoding stage
+    result_json, encoding_tokens = future_encoding.result()
+    total_tokens += encoding_tokens
 
     logger.info(f"--- Post-Research Result Log ---")
     logger.info(json.dumps(result_json, indent=2, ensure_ascii=False))
+    logger.info(f"Total Tokens: {total_tokens}")
     logger.info(f"--------------------------------")
 
     time_end = time.time()
@@ -308,6 +324,7 @@ def gemini_research(body: ResearchBodyModel, context: str = None):
         urls=final_url_objects,
         urls_excluded_count=urls_excluded_count,
         primary_research_result=uuid.uuid4(), # Placeholder
+        total_tokens=total_tokens,
         created_at=datetime.now(),
         updated_at=datetime.now()
     )
