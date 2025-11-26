@@ -26,9 +26,10 @@ class ResearchResponseModel(BaseModel):
     keyword: str
     smart_message: str = Field(max_length=1000)
     full_message: str
-    time: Optional[float]
+    time: Optional[float] = None
     urls: List[UrlMetadata] = []
     urls_excluded_count: int = 0
-    primary_research_result: UUID4 
-    created_at: datetime
-    updated_at: datetime
+    primary_research_result: UUID4 = None
+    total_tokens: Optional[int] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)

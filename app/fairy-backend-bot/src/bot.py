@@ -171,7 +171,7 @@ def run_bot():
         reply_text = f"{owner_mention}\n{result['smart_message']}"
         reply_text += f"""\n\nマスター、以下のインターノットリンクに詳細情報をまとめました。必要でしたらご確認ください。
                             \nURL：https://fairy.krz-tech.net/{result['uuid']}
-                            \nFairy処理時間：{result['time']}秒"""
+                            \n{result['time']} sec || {result.get('total_tokens', 'N/A')} Token"""
         sent_message = await message.reply(reply_text)
         
         # Update message_id in backend

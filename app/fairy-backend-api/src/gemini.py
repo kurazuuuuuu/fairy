@@ -251,7 +251,11 @@ def process_encoding(research_text: str) -> dict:
     except json.JSONDecodeError:
         result_json = {"smart_message": "エラー：応答の解析に失敗しました。再度リクエストを送信してください。", "full_message": encoding_response.text}
     
-    return result_json
+    token_count = 0
+    if encoding_response.usage_metadata:
+        token_count = encoding_response.usage_metadata.total_token_count
+
+    return result_json, token_count
 
 def gemini_research(body: ResearchBodyModel, context: str = None):
     time_start = time.time()
@@ -290,10 +294,18 @@ def gemini_research(body: ResearchBodyModel, context: str = None):
         
         # Wait for both to complete
         final_url_objects, urls_excluded_count = future_urls.result()
-        result_json = future_encoding.result()
+    # Calculate total tokens
+    total_tokens = 0
+    if research_response.usage_metadata:
+        total_tokens += research_response.usage_metadata.total_token_count
+    
+    # Add tokens from encoding stage
+    result_json, encoding_tokens = future_encoding.result()
+    total_tokens += encoding_tokens
 
     logger.info(f"--- Post-Research Result Log ---")
     logger.info(json.dumps(result_json, indent=2, ensure_ascii=False))
+    logger.info(f"Total Tokens: {total_tokens}")
     logger.info(f"--------------------------------")
 
     time_end = time.time()
@@ -312,6 +324,7 @@ def gemini_research(body: ResearchBodyModel, context: str = None):
         urls=final_url_objects,
         urls_excluded_count=urls_excluded_count,
         primary_research_result=uuid.uuid4(), # Placeholder
+        total_tokens=total_tokens,
         created_at=datetime.now(),
         updated_at=datetime.now()
     )
