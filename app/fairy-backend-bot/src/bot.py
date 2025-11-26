@@ -105,6 +105,23 @@ def run_bot():
                     if mention == bot.user:
                         content = content.replace(f'<@{mention.id}>', '').strip()
             
+            # リプライの場合、リサーチ結果への返信かチェック
+            if is_reply and not is_mention:
+                try:
+                    ref_msg = await message.channel.fetch_message(message.reference.message_id)
+                    # Bot自身のメッセージかつ、リサーチ結果URLが含まれているか確認
+                    is_research_result = (
+                        ref_msg.author == bot.user and 
+                        "https://fairy.krz-tech.net/" in ref_msg.content
+                    )
+                    if not is_research_result:
+                        return
+                except discord.NotFound:
+                    return
+                except Exception as e:
+                    logger.error(f"Failed to fetch referenced message: {e}")
+                    return
+
             if content:
                 async with message.channel.typing():
                     try:
