@@ -17,4 +17,4 @@ COPY . .
 EXPOSE 8000
 
 # Default command (API server)
-CMD ["uv", "run", "fastapi", "run"]
+CMD ["uv", "run", "fastapi", "run", "--host", "0.0.0.0", "--port", "8000"]
