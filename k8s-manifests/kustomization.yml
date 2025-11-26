@@ -9,4 +9,4 @@ images:
 - name: ghcr.io/kurazuuuuuu/fairy-backend-api
   newTag: latest
 - name: ghcr.io/kurazuuuuuu/fairy-frontend
-  newTag: c0e0f6b1c3c5f4df60c9639b2b5c8fdb81d63645
+  newTag: 52279fa23efea703dd53a0bc61d5d77284cfa0c2
