@@ -1,0 +1,65 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fairy-frontend
+  namespace: argocd-prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fairy-frontend
+  template:
+    metadata:
+      labels:
+        app: fairy-frontend
+    spec:
+      imagePullSecrets:
+      - name: ghcr-registry-secret
+      containers:
+      - name: fairy-frontend
+        image: ghcr.io/kurazuuuuuu/fairy-frontend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        env:
+        - name: BACKEND_API_URL
+          value: "http://fairy-backend-api-internal:8000"
+        - name: VITE_DISCORD_INVITE_URL
+          valueFrom:
+            secretKeyRef:
+              name: fairy-secrets
+              key: vite-discord-invite-url
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fairy-frontend
+  namespace: argocd-prod
+spec:
+  selector:
+    app: fairy-frontend
+  ports:
+  - port: 80
+    targetPort: 80
+  type: LoadBalancer
+  loadBalancerIP: 192.168.1.23

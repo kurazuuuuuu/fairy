@@ -1,12 +1,16 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+
 resources:
-- manifests.yaml
-- services.yaml
+- backend-api.yaml
+- backend-bot.yaml
+- frontend.yaml
+- mongodb.yaml
+
 images:
 - name: ghcr.io/kurazuuuuuu/fairy-backend-bot
   newTag: latest
 - name: ghcr.io/kurazuuuuuu/fairy-backend-api
   newTag: latest
 - name: ghcr.io/kurazuuuuuu/fairy-frontend
-  newTag: f3afd165663be9801cf9e3de742c349a8df0d0bf
+  newTag: latest

@@ -1,0 +1,44 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fairy-backend-bot
+  namespace: argocd-prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fairy-backend-bot
+  template:
+    metadata:
+      labels:
+        app: fairy-backend-bot
+    spec:
+      imagePullSecrets:
+      - name: ghcr-registry-secret
+      containers:
+      - name: fairy-backend-bot
+        image: ghcr.io/kurazuuuuuu/fairy-backend-bot:latest
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        env:
+        - name: DISCORD_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: fairy-secrets
+              key: discord-bot-token
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: fairy-secrets
+              key: gemini-api-key
+        - name: MONGODB_URI
+          value: "mongodb://mongodb:27017"
+        - name: BACKEND_API_URL
+          value: "http://fairy-backend-api-internal:8000"
