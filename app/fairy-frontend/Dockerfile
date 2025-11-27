@@ -23,6 +23,8 @@ COPY <<'EOF' /docker-entrypoint.d/40-envsubst-on-config.sh
 set -e
 # Substitute BACKEND_API_URL in nginx config
 envsubst '${BACKEND_API_URL}' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
+# Substitute VITE_DISCORD_INVITE_URL in config.js
+envsubst '${BACKEND_API_URL} ${VITE_DISCORD_INVITE_URL}' < /usr/share/nginx/html/config.js > /usr/share/nginx/html/config.js.tmp && mv /usr/share/nginx/html/config.js.tmp /usr/share/nginx/html/config.js
 EOF
 
 RUN chmod +x /docker-entrypoint.d/40-envsubst-on-config.sh

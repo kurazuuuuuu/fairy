@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { BrandDiscordIcon } from 'vue-tabler-icons';
-const discordInviteUrl = import.meta.env.VITE_DISCORD_INVITE_URL
+const discordInviteUrl = (window as any).ENV?.VITE_DISCORD_INVITE_URL || import.meta.env.VITE_DISCORD_INVITE_URL
 </script>
 
 <template>
