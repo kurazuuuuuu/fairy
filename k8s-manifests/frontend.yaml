@@ -43,7 +43,7 @@ spec:
           periodSeconds: 10
         env:
         - name: BACKEND_API_URL
-          value: https://fairy.krz-tech.net
+          value: https://api-fairy.krz-tech.net
         - name: VITE_DISCORD_INVITE_URL
           valueFrom:
             secretKeyRef:
