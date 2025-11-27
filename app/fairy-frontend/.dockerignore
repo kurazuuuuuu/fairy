@@ -1,0 +1,16 @@
+# Local
+## VSCode
+.vscode/
+
+## Git
+.gitignore
+.git/
+
+## Node
+node_modules/
+
+## Vite
+dist/
+
+# README
+README.md
