@@ -43,7 +43,10 @@ spec:
           periodSeconds: 10
         env:
         - name: BACKEND_API_URL
-          value: "http://fairy-backend-api-internal:8000"
+          valueFrom:
+            secretKeyRef:
+              name: fairy-secrets
+              key: backend-api-url
         - name: VITE_DISCORD_INVITE_URL
           valueFrom:
             secretKeyRef:
