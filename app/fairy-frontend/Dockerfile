@@ -16,7 +16,7 @@ RUN npm run build
 FROM nginx:stable-alpine-slim
 
 COPY --from=0 /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf.template
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 COPY <<'EOF' /docker-entrypoint.d/40-envsubst-on-config.sh
 #!/bin/sh
