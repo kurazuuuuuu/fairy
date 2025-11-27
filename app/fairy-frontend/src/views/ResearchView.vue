@@ -71,7 +71,7 @@ const getFaviconUrl = (url: string) => {
 onMounted(async () => {
   try {
     const uuid = route.params.uuid
-    const apiUrl = import.meta.env.BACKEND_API_URL || ''
+    const apiUrl = (window as any).ENV?.BACKEND_API_URL || import.meta.env.BACKEND_API_URL || ''
     const response = await fetchWithAuth(`${apiUrl}/api/research/${uuid}`)
     if (!response.ok) {
       throw new Error('リサーチ結果が見つかりませんでした')
