@@ -1,0 +1,11 @@
+# Python
+.venv/
+__pycache__/
+.python-version
+
+# Git
+.gitignore
+.git
+
+# README
+README.md

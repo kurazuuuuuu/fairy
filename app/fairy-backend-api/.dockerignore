@@ -1,0 +1,14 @@
+# Python
+.venv/
+__pycache__/
+.python-version
+
+# Git
+.gitignore
+.git
+
+# Env
+.env
+
+# README
+README.md
