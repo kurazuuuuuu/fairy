@@ -29,18 +29,6 @@ spec:
           limits:
             memory: "2Gi"
             cpu: "2000m"
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 8000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 8000
-          initialDelaySeconds: 5
-          periodSeconds: 10
         env:
         - name: GEMINI_API_KEY
           valueFrom:
