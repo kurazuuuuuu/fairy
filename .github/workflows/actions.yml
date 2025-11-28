@@ -4,8 +4,8 @@ on:
         branches: [main]
         paths-ignore:
         - 'k8s-manifests/**'
-        - 'docs/**'
-        - 'README.md'
+        - '**.md'
+
 permissions:
   contents: read
   packages: write
