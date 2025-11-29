@@ -2,6 +2,7 @@ name: CI
 on:
     push: 
         branches: [main]
+        tags: ['v*']
         paths-ignore:
         - 'k8s-manifests/**'
         - '**.md'
@@ -21,15 +22,24 @@ jobs:
           run: |
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
-        - name: Build and tag backend-api image
-          run: |
-            docker build -t ghcr.io/${{ github.repository }}-backend-api:${{ github.sha }} ./app/fairy-backend-api
-            docker tag ghcr.io/${{ github.repository }}-backend-api:${{ github.sha }} ghcr.io/${{ github.repository }}-backend-api:latest
-            
-        - name: Push backend-api image
-          run: |
-            docker push ghcr.io/${{ github.repository }}-backend-api:${{ github.sha }}
-            docker push ghcr.io/${{ github.repository }}-backend-api:latest
+        - name: Docker meta
+          id: meta
+          uses: docker/metadata-action@v5
+          with:
+            images: ghcr.io/${{ github.repository }}-backend-api
+            tags: |
+              type=ref,event=branch
+              type=ref,event=pr
+              type=semver,pattern={{version}}
+              type=sha
+
+        - name: Build and push backend-api image
+          uses: docker/build-push-action@v5
+          with:
+            context: ./app/fairy-backend-api
+            push: true
+            tags: ${{ steps.meta.outputs.tags }}
+            labels: ${{ steps.meta.outputs.labels }}
 
     build-backend-bot:
         runs-on: ci-fairy
@@ -41,15 +51,24 @@ jobs:
           run: |
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
-        - name: Build and tag backend-bot image
-          run: |
-            docker build -t ghcr.io/${{ github.repository }}-backend-bot:${{ github.sha }} ./app/fairy-backend-bot
-            docker tag ghcr.io/${{ github.repository }}-backend-bot:${{ github.sha }} ghcr.io/${{ github.repository }}-backend-bot:latest
-            
-        - name: Push backend-bot image
-          run: |
-            docker push ghcr.io/${{ github.repository }}-backend-bot:${{ github.sha }}
-            docker push ghcr.io/${{ github.repository }}-backend-bot:latest
+        - name: Docker meta
+          id: meta
+          uses: docker/metadata-action@v5
+          with:
+            images: ghcr.io/${{ github.repository }}-backend-bot
+            tags: |
+              type=ref,event=branch
+              type=ref,event=pr
+              type=semver,pattern={{version}}
+              type=sha
+
+        - name: Build and push backend-bot image
+          uses: docker/build-push-action@v5
+          with:
+            context: ./app/fairy-backend-bot
+            push: true
+            tags: ${{ steps.meta.outputs.tags }}
+            labels: ${{ steps.meta.outputs.labels }}
 
     build-frontend:
         runs-on: ci-fairy
@@ -61,12 +80,21 @@ jobs:
           run: |
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
-        - name: Build and tag frontend image
-          run: |
-            docker build -t ghcr.io/${{ github.repository }}-frontend:${{ github.sha }} ./app/fairy-frontend
-            docker tag ghcr.io/${{ github.repository }}-frontend:${{ github.sha }} ghcr.io/${{ github.repository }}-frontend:latest
-            
-        - name: Push frontend image
-          run: |
-            docker push ghcr.io/${{ github.repository }}-frontend:${{ github.sha }}
-            docker push ghcr.io/${{ github.repository }}-frontend:latest
+        - name: Docker meta
+          id: meta
+          uses: docker/metadata-action@v5
+          with:
+            images: ghcr.io/${{ github.repository }}-frontend
+            tags: |
+              type=ref,event=branch
+              type=ref,event=pr
+              type=semver,pattern={{version}}
+              type=sha
+
+        - name: Build and push frontend image
+          uses: docker/build-push-action@v5
+          with:
+            context: ./app/fairy-frontend
+            push: true
+            tags: ${{ steps.meta.outputs.tags }}
+            labels: ${{ steps.meta.outputs.labels }}

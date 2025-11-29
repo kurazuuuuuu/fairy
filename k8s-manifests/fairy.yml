@@ -6,12 +6,12 @@ metadata:
   namespace: argocd
   annotations:
     argocd-image-updater.argoproj.io/image-list: backend-api=ghcr.io/kurazuuuuuu/fairy-backend-api,backend-bot=ghcr.io/kurazuuuuuu/fairy-backend-bot,frontend=ghcr.io/kurazuuuuuu/fairy-frontend
-    argocd-image-updater.argoproj.io/backend-api.update-strategy: latest
-    argocd-image-updater.argoproj.io/backend-bot.update-strategy: latest
-    argocd-image-updater.argoproj.io/frontend.update-strategy: latest
-    argocd-image-updater.argoproj.io/backend-api.allow-tags: regexp:^[0-9a-f]{40}$
-    argocd-image-updater.argoproj.io/backend-bot.allow-tags: regexp:^[0-9a-f]{40}$
-    argocd-image-updater.argoproj.io/frontend.allow-tags: regexp:^[0-9a-f]{40}$
+    argocd-image-updater.argoproj.io/backend-api.update-strategy: semver
+    argocd-image-updater.argoproj.io/backend-bot.update-strategy: semver
+    argocd-image-updater.argoproj.io/frontend.update-strategy: semver
+    argocd-image-updater.argoproj.io/backend-api.allow-tags: regexp:^v[0-9]+\.[0-9]+\.[0-9]+$
+    argocd-image-updater.argoproj.io/backend-bot.allow-tags: regexp:^v[0-9]+\.[0-9]+\.[0-9]+$
+    argocd-image-updater.argoproj.io/frontend.allow-tags: regexp:^v[0-9]+\.[0-9]+\.[0-9]+$
     argocd-image-updater.argoproj.io/backend-api.pull-secret: pullsecret:argocd/ghcr-registry-secret
     argocd-image-updater.argoproj.io/backend-bot.pull-secret: pullsecret:argocd/ghcr-registry-secret
     argocd-image-updater.argoproj.io/frontend.pull-secret: pullsecret:argocd/ghcr-registry-secret
