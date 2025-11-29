@@ -38,7 +38,7 @@ class ToSView(discord.ui.View):
             await interaction.response.send_message("これはあなたのためのボタンではありません。", ephemeral=True)
             return
 
-        await interaction.response.defer()
+        await interaction.response.defer(ephemeral=True)
         
         try:
             async with aiohttp.ClientSession() as session:
@@ -49,16 +49,63 @@ class ToSView(discord.ui.View):
                     headers=headers
                 ) as response:
                     if response.status == 200:
-                        await interaction.message.edit(
-                            content="マスター、利用規約への同意を確認しました。これよりFairyの全機能をご利用いただけます。\n\nお手数ですが、もう一度リクエストを送信してください。",
-                            view=None
+                        await interaction.followup.send(
+                            "マスター、利用規約への同意を確認しました。これよりFairyの全機能をご利用いただけます。\n\nお手数ですが、もう一度元のチャンネルでリクエストを送信してください。",
+                            ephemeral=True
                         )
+                        try:
+                            await interaction.message.delete()
+                        except discord.NotFound:
+                            pass
                         self.stop()
                     else:
-                        await interaction.followup.send("マスター、同意の処理中にエラーが発生しました。", ephemeral=True)
+                        await interaction.followup.send("マスター、同意の処理中にエラーが発生しました。管理者に連絡してください。", ephemeral=True)
         except Exception as e:
             logger.error(f"ToS agreement failed: {e}")
-            await interaction.followup.send("マスター、通信エラーが発生しました。", ephemeral=True)
+            await interaction.followup.send("マスター、通信エラーが発生しました。管理者に連絡してください。", ephemeral=True)
+
+async def send_tos_request(message, user_id, access_token):
+    view = ToSView(user_id, access_token)
+    
+    embed = ToS()
+    embed.set_footer(text="同意いただける場合は、下のボタンを押してください。")
+
+    try:
+        # DM送信
+        await message.author.send(embed=embed, view=view)
+        # DM送信通知
+        await message.reply("マスター、Fairyの利用規約をDMに送信しました。ご確認ください。", delete_after=10)
+    except discord.Forbidden:
+        # ユーザー設定によりDMが送信できなかった場合の対応
+        await message.reply(
+            "マスター、DMを送信できませんでした。設定をご確認ください。こちらで同意していただくことも可能です。",
+            embed=embed,
+            view=view,
+            delete_after=30
+        )
+
+async def ToS():
+    embed = discord.Embed(
+        title="利用規約への同意",
+        description="マスター、Fairyの機能を使用するには、以下の利用規約に同意する必要があります。",
+        color=0x00b0f4
+    )
+    embed.add_field(
+        name="1. Gemini APIの利用",
+        value="情報収集・分析のためにGoogle Gemini APIを使用します。",
+        inline=False
+    )
+    embed.add_field(
+        name="2. データの保存",
+        value="リサーチ結果や会話データは、サービスの品質向上および履歴管理のために保存されます。",
+        inline=False
+    )
+    embed.add_field(
+        name="3. 免責事項",
+        value="生成された情報の正確性について保証するものではありません。",
+        inline=False
+    )
+    return embed
 
 def run_bot():
     load_dotenv()
@@ -81,7 +128,7 @@ def run_bot():
         await bot.change_presence(
             activity=discord.Activity(
                 type=discord.ActivityType.playing,
-                name="ホロウを探索中..."
+                name="ホロウをホロウ..."
             )
         )
         
@@ -164,7 +211,7 @@ def run_bot():
                                     elif response.status == 403:
                                          await send_tos_request(message, message.author.id, access_token)
                                     else:
-                                        await message.reply("マスター、追加探索中にエラーが発生しました。")
+                                        await message.reply("マスター、追加ホロウ探索にエラーが発生しました。")
                             else:
                                 # New Research
                                 async with session.post(
@@ -178,10 +225,10 @@ def run_bot():
                                     elif response.status == 403:
                                         await send_tos_request(message, message.author.id, access_token)
                                     else:
-                                        await message.reply("マスター、探索中にエラーが発生しました。")
+                                        await message.reply("マスター、ホロウ探索中にエラーが発生しました。")
                     except Exception as e:
                         logger.error(f"Research request failed: {e}")
-                        await message.reply("マスター、探索中にエラーが発生しました。管理者に確認してみてください。")
+                        await message.reply("マスター、ホロウ探索中に問題が発生しました。管理者に確認してみてください。")
 
     async def send_research_result(message, result, session, headers):
         owner_mention = f"<@{result['owner']}>"
@@ -202,17 +249,6 @@ def run_bot():
                     logger.warning(f"Failed to update message_id for research {result['uuid']}")
         except Exception as e:
             logger.error(f"Failed to update message_id: {e}")
-
-    async def send_tos_request(message, user_id, access_token):
-        view = ToSView(user_id, access_token)
-        await message.reply(
-            "マスター、Fairyの機能を使用するには、以下の利用規約に同意する必要があります。\n\n"
-            "1. **Gemini APIの利用**: 情報収集・分析のためにGoogle Gemini APIを使用します。\n"
-            "2. **データの保存**: リサーチ結果や会話データは、サービスの品質向上および履歴管理のために保存されます。\n"
-            "3. **免責事項**: 生成された情報の正確性について保証するものではありません。\n\n"
-            "同意いただける場合は、下のボタンを押してください。",
-            view=view
-        )
 
     # Run the bot
     try:
