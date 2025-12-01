@@ -128,7 +128,7 @@ def run_bot():
         await bot.change_presence(
             activity=discord.Activity(
                 type=discord.ActivityType.playing,
-                name="ホロウをホロウ..."
+                name="ホロウを探索中..."
             )
         )
         
