@@ -11,4 +11,4 @@ images:
 - name: ghcr.io/kurazuuuuuu/fairy-backend-api
   newTag: sha-7bc6c5b
 - name: ghcr.io/kurazuuuuuu/fairy-frontend
-  newTag: sha-cb02f5b
+  newTag: 2.0.4
