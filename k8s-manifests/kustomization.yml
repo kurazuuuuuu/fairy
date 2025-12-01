@@ -7,8 +7,8 @@ resources:
 - mongodb.yaml
 images:
 - name: ghcr.io/kurazuuuuuu/fairy-backend-bot
-  newTag: sha-7bc6c5b
+  newTag: 2.0.4
 - name: ghcr.io/kurazuuuuuu/fairy-backend-api
-  newTag: sha-7bc6c5b
+  newTag: 2.0.4
 - name: ghcr.io/kurazuuuuuu/fairy-frontend
   newTag: 2.0.4
