@@ -22,8 +22,11 @@ COPY <<'EOF' /docker-entrypoint.d/40-envsubst-on-config.sh
 #!/bin/sh
 set -e
 
-# Substitute VITE_DISCORD_INVITE_URL in config.js
+# Substitute environment variables in config.js
 envsubst '${BACKEND_API_URL} ${VITE_DISCORD_INVITE_URL}' < /usr/share/nginx/html/config.js > /usr/share/nginx/html/config.js.tmp && mv /usr/share/nginx/html/config.js.tmp /usr/share/nginx/html/config.js
+
+# Substitute environment variables in nginx.conf (for OGP proxy)
+envsubst '${BACKEND_API_URL}' < /etc/nginx/conf.d/default.conf > /etc/nginx/conf.d/default.conf.tmp && mv /etc/nginx/conf.d/default.conf.tmp /etc/nginx/conf.d/default.conf
 EOF
 
 RUN chmod +x /docker-entrypoint.d/40-envsubst-on-config.sh
