@@ -156,6 +156,11 @@ def resolve_redirect(url: str) -> tuple[str, str | None] | None:
         if response.status_code == 200:
             final_url = response.url
             try:
+                # Fix encoding: use apparent_encoding if charset is not specified
+                # エンコーディング修正：charsetが指定されていない場合はapparent_encodingを使用
+                if response.encoding is None or response.encoding == 'ISO-8859-1':
+                    response.encoding = response.apparent_encoding
+                
                 soup = BeautifulSoup(response.text, 'html.parser')
                 title = str(soup.title.string.strip()) if soup.title and soup.title.string else None
             except Exception:
