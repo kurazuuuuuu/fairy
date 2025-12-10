@@ -10,6 +10,10 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - MONGODB_URI=mongodb://fairy-mongodb:27017
       - JWT_SECRET=${JWT_SECRET}
+      - BASE_URL=${BASE_URL}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - APP_VERSION=${APP_VERSION}
     restart: unless-stopped
     depends_on:
       - fairy-mongodb
@@ -20,9 +24,9 @@ services:
       dockerfile: Dockerfile
     command: ["uv", "run", "python", "main.py"]
     environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
-      - BACKEND_API_URL=http://fairy-backend-api:8000
+      - BACKEND_INTERNAL_URL=http://fairy-backend-api:8000
+      - APP_VERSION=${APP_VERSION}
     restart: unless-stopped
     depends_on:
       - fairy-backend-api
@@ -43,6 +47,7 @@ services:
       - "3000:80"
     environment:
       - BACKEND_API_URL=${BACKEND_API_URL}
+      - VITE_DISCORD_INVITE_URL=${VITE_DISCORD_INVITE_URL}
     restart: unless-stopped
 
 volumes:

@@ -72,7 +72,7 @@ onMounted(async () => {
   try {
     const uuid = route.params.uuid
     const apiUrl = (window as any).ENV?.BACKEND_API_URL || import.meta.env.BACKEND_API_URL || ''
-    const response = await fetchWithAuth(`${apiUrl}/api/research/${uuid}`)
+    const response = await fetchWithAuth(`${apiUrl}/v2/research/${uuid}`)
     if (!response.ok) {
       throw new Error('リサーチ結果が見つかりませんでした')
     }

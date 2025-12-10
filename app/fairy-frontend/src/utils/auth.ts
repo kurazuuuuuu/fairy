@@ -15,7 +15,7 @@ async function generateToken(): Promise<string> {
   const userId = getUserId()
   const apiUrl = (window as any).ENV?.BACKEND_API_URL || import.meta.env.BACKEND_API_URL || ''
   
-  const response = await fetch(`${apiUrl}/api/auth/token`, {
+  const response = await fetch(`${apiUrl}/v2/auth/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ user_id: userId })
