@@ -1,10 +1,14 @@
 import os
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.responses import Response, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from src.models import ResearchBodyModel
 from src.gemini import gemini_research
-from src.db import get_research_result, init_db
+from src.db import get_research_result, init_db, update_research_message_id, get_research_by_message_id
 from src.auth import verify_jwt_token, create_jwt_token
+from src.ogp import generate_ogp_image, generate_ogp_html
+from src.users import get_user, create_or_update_tos
 
 app = FastAPI()
 
@@ -24,7 +28,7 @@ app.add_middleware(
 async def root():
     return {"message": "Fairy API Server"}
 
-from src.users import get_user, create_or_update_tos
+
 
 @app.post("/api/research")
 async def research(body: ResearchBodyModel, token_payload: dict = Depends(verify_jwt_token)):
@@ -35,7 +39,7 @@ async def research(body: ResearchBodyModel, token_payload: dict = Depends(verify
     response = gemini_research(body)
     return response
 
-from pydantic import BaseModel
+
 
 class TokenRequest(BaseModel):
     user_id: int
@@ -64,7 +68,6 @@ async def generate_token(request: TokenRequest):
 class MessageIdUpdate(BaseModel):
     message_id: int
 
-from src.db import update_research_message_id
 
 @app.patch("/api/research/{uuid}/message")
 async def update_message_id(uuid: str, body: MessageIdUpdate, token_payload: dict = Depends(verify_jwt_token)):
@@ -76,7 +79,6 @@ class FollowupResearchBody(BaseModel):
     keyword: str
     parent_message_id: int
 
-from src.db import get_research_by_message_id
 
 @app.post("/api/research/followup")
 async def followup_research(body: FollowupResearchBody, token_payload: dict = Depends(verify_jwt_token)):
@@ -95,3 +97,58 @@ async def followup_research(body: FollowupResearchBody, token_payload: dict = De
     
     response = gemini_research(research_body, context=context)
     return response
+
+# OGP endpoints (no authentication required for social media crawlers)
+# OGPエンドポイント（SNSクローラー向け、認証不要）
+
+@app.get("/api/research/{uuid}/ogp.png")
+async def get_research_ogp_image(uuid: str):
+    """
+    Generate and return OGP image for research result.
+    リサーチ結果のOGP画像を生成して返す。
+    """
+    result = get_research_result(uuid)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Research not found")
+    
+    keyword = result.get("keyword", "")
+    # Use smart_message for body text, fallback to full_message
+    body_text = result.get("smart_message", result.get("full_message", ""))
+    
+    # Generate OGP image
+    image_bytes = generate_ogp_image(keyword, body_text)
+    
+    return Response(
+        content=image_bytes,
+        media_type="image/png",
+        headers={
+            "Cache-Control": "public, max-age=86400",  # Cache for 24 hours
+        }
+    )
+
+@app.get("/api/research/{uuid}/ogp")
+async def get_research_ogp_html(uuid: str):
+    """
+    Return HTML page with OGP meta tags for social media crawlers.
+    SNSクローラー向けにOGPメタタグを含むHTMLを返す。
+    """
+    result = get_research_result(uuid)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Research not found")
+    
+    keyword = result.get("keyword", "")
+    smart_message = result.get("smart_message", "")
+    
+    # Get base URLs from environment
+    base_url = os.getenv("BASE_URL", "https://api.fairy.krz-tech.net")
+    frontend_url = os.getenv("FRONTEND_URL", "https://fairy.krz-tech.net")
+    
+    html = generate_ogp_html(
+        uuid=uuid,
+        keyword=keyword,
+        smart_message=smart_message,
+        base_url=base_url,
+        frontend_url=frontend_url,
+    )
+    
+    return HTMLResponse(content=html)

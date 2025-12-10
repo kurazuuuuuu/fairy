@@ -106,7 +106,7 @@ def generate_fairy_response(research_text: str):
         response_mime_type="application/json",
         response_schema=response_schema,
         system_instruction=[
-            types.Part.from_text(text=f"""# AIのアイデンティティ設定
+            types.Part.from_text(text="""# AIのアイデンティティ設定
 あなたは、ゼンレスゾーンゼロに登場する高性能AI「Fairy（フェアリー）」です。マスター（ユーザー）をサポートします。
 入力されたリサーチ結果を元に、Fairyとしての口調で分析結果を報告してください。
 
@@ -172,33 +172,7 @@ def resolve_redirect(url: str) -> tuple[str, str | None] | None:
         logger.warning(f"Failed to resolve redirect for {url}: {e}")
         return None
 
-def gemini_research(body: ResearchBodyModel):
-    time_start = time.time()
-    
-    logger.info(f"--- Research Start ---")
-    logger.info(f"User ID: {body.user_id}")
-    logger.info(f"Keyword: {body.keyword}")
 
-    # Stage 1: Research
-    research_response = perform_research(body.keyword)
-    if not research_response.text:
-        raise ValueError("Research content is empty")
-    
-    logger.info(f"--- Pre-Research Log ---")
-    logger.info(research_response.text)
-    logger.info(f"------------------------")
-    
-    # Extract URLs from Research Stage
-    url_objects = []
-    if research_response.candidates and research_response.candidates[0].grounding_metadata:
-        grounding_metadata = research_response.candidates[0].grounding_metadata
-        if grounding_metadata.grounding_chunks:
-            for chunk in grounding_metadata.grounding_chunks:
-                if chunk.web:
-                    url_objects.append(UrlMetadata(
-                        url=str(chunk.web.uri),
-                        title=str(chunk.web.title or "No Title")
-                    ))
 
 def process_urls(url_objects: list[UrlMetadata]) -> tuple[list[UrlMetadata], int]:
     # Deduplicate by initial URL first to minimize requests
@@ -260,7 +234,7 @@ def process_encoding(research_text: str) -> dict:
 def gemini_research(body: ResearchBodyModel, context: str = None):
     time_start = time.time()
     
-    logger.info(f"--- Research Start ---")
+    logger.info("--- Research Start ---")
     logger.info(f"User ID: {body.user_id}")
     logger.info(f"Keyword: {body.keyword}")
     if context:
@@ -271,9 +245,9 @@ def gemini_research(body: ResearchBodyModel, context: str = None):
     if not research_response.text:
         raise ValueError("Research content is empty")
     
-    logger.info(f"--- Pre-Research Log ---")
+    logger.info("--- Pre-Research Log ---")
     logger.info(research_response.text)
-    logger.info(f"------------------------")
+    logger.info("------------------------")
     
     # Extract URLs from Research Stage
     url_objects = []
@@ -303,10 +277,10 @@ def gemini_research(body: ResearchBodyModel, context: str = None):
     result_json, encoding_tokens = future_encoding.result()
     total_tokens += encoding_tokens
 
-    logger.info(f"--- Post-Research Result Log ---")
+    logger.info("--- Post-Research Result Log ---")
     logger.info(json.dumps(result_json, indent=2, ensure_ascii=False))
     logger.info(f"Total Tokens: {total_tokens}")
-    logger.info(f"--------------------------------")
+    logger.info("--------------------------------")
 
     time_end = time.time()
     processing_time = round(time_end - time_start, 3)

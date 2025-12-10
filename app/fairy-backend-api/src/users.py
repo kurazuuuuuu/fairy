@@ -47,7 +47,7 @@ def add_research_to_user(user_id: int, research_uuid: str):
     
     now = datetime.utcnow()
     
-    result = collection.update_one(
+    collection.update_one(
         {"user_id": user_id},
         {
             "$push": {"research_list": research_uuid},
