@@ -14,9 +14,14 @@ services:
       - FRONTEND_URL=${FRONTEND_URL}
       - CORS_ORIGINS=${CORS_ORIGINS}
       - APP_VERSION=${APP_VERSION}
+      - OLLAMA_HOST=http://ollama:11434
+      - GEMMA_MODEL=gemma3:1b
     restart: unless-stopped
     depends_on:
-      - fairy-mongodb
+      fairy-mongodb:
+        condition: service_started
+      ollama:
+        condition: service_healthy
 
   fairy-backend-bot:
     build:
@@ -31,8 +36,29 @@ services:
     depends_on:
       - fairy-backend-api
 
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        ollama serve &
+        sleep 5
+        ollama pull gemma3:1b
+        tail -f /dev/null
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list | grep -q gemma3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+
   fairy-mongodb:
-    image: mongo:latest
+    image: mongo:6.0
     ports:
       - "27017:27017"
     volumes:
@@ -52,3 +78,4 @@ services:
 
 volumes:
   mongodb_data:
+  ollama_data:

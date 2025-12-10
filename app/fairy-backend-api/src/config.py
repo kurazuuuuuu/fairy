@@ -30,6 +30,8 @@ class Config:
     # Optional environment variables with defaults / オプション環境変数（デフォルト値あり）
     CORS_ORIGINS: list[str]
     APP_VERSION: str
+    OLLAMA_HOST: str
+    GEMMA_MODEL: str
     
     def __init__(self):
         # Required variables - raise error if not set
@@ -50,6 +52,10 @@ class Config:
         else:
             self.CORS_ORIGINS = ["https://fairy.krz-tech.net"]
             logger.warning("CORS_ORIGINS not set, using default: https://fairy.krz-tech.net")
+        
+        # Ollama settings (for keyword extraction)
+        self.OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+        self.GEMMA_MODEL = os.getenv("GEMMA_MODEL", "gemma3:1b")
     
     def _get_required(self, key: str) -> str:
         """Get a required environment variable or raise an error."""
@@ -72,6 +78,8 @@ class Config:
         logger.info(f"  - CORS_ORIGINS: {self.CORS_ORIGINS}")
         logger.info(f"  - GEMINI_API_KEY: {'*' * 10}...")
         logger.info(f"  - JWT_SECRET: {'*' * 10}...")
+        logger.info(f"  - OLLAMA_HOST: {self.OLLAMA_HOST}")
+        logger.info(f"  - GEMMA_MODEL: {self.GEMMA_MODEL}")
         return True
 
 

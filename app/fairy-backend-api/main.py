@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import Response, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,7 +38,8 @@ async def research(body: ResearchBodyModel, token_payload: dict = Depends(verify
     if not user or not user.tos_agreed:
         raise HTTPException(status_code=403, detail="Terms of Service not agreed")
     
-    response = gemini_research(body)
+    loop = asyncio.get_event_loop()
+    response = await loop.run_in_executor(None, gemini_research, body)
     return response
 
 
@@ -96,7 +98,8 @@ async def followup_research(body: FollowupResearchBody, token_payload: dict = De
     # Create a ResearchBodyModel for the new research
     research_body = ResearchBodyModel(user_id=body.user_id, keyword=body.keyword)
     
-    response = gemini_research(research_body, context=context)
+    loop = asyncio.get_event_loop()
+    response = await loop.run_in_executor(None, lambda: gemini_research(research_body, context=context))
     return response
 
 # OGP endpoints (no authentication required for social media crawlers)
