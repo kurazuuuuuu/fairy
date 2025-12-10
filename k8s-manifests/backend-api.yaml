@@ -1,4 +1,17 @@
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ollama-data-pvc
+  namespace: argocd-prod
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: nfs-standard
+  resources:
+    requests:
+      storage: 5Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,6 +19,8 @@ metadata:
   namespace: argocd-prod
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: fairy-backend-api
@@ -17,6 +32,26 @@ spec:
       imagePullSecrets:
       - name: ghcr-registry-secret
       containers:
+      # Ollama sidecar container
+      - name: ollama
+        image: ollama/ollama:latest
+        ports:
+        - containerPort: 11434
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        volumeMounts:
+        - name: ollama-data
+          mountPath: /root/.ollama
+        lifecycle:
+          postStart:
+            exec:
+              command: ["/bin/sh", "-c", "ollama pull gemma3:1b || true"]
+      # Backend API container
       - name: fairy-backend-api
         image: ghcr.io/kurazuuuuuu/fairy-backend-api:latest
         imagePullPolicy: Always
@@ -65,6 +100,14 @@ spec:
             secretKeyRef:
               name: fairy-secrets
               key: app-version
+        - name: OLLAMA_HOST
+          value: "http://localhost:11434"
+        - name: GEMMA_MODEL
+          value: "gemma3:1b"
+      volumes:
+      - name: ollama-data
+        persistentVolumeClaim:
+          claimName: ollama-data-pvc
 ---
 apiVersion: v1
 kind: Service

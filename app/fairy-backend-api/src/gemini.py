@@ -17,6 +17,7 @@ from src.models import ResearchBodyModel, ResearchResponseModel, UrlMetadata
 from src.db import save_research_result
 from src.users import add_research_to_user
 from src.config import config
+from src.ollama_client import extract_keywords_from_ollama
 
 logger = logging.getLogger("uvicorn")
 
@@ -26,6 +27,8 @@ def load_api_key():
 
 def get_today():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
 
 def perform_research(keyword: str, context: str = None):
     """Stage 1: Research - Gather information using Google Search"""
@@ -40,10 +43,11 @@ Google検索ツールを使用して、入力されたキーワードに関す�
 1.  **必ずGoogle検索ツールを実際に使用すること。** 想像や過去の知識だけで回答しないでください。
 2.  **検索結果に基づいた事実のみを記述すること。**
 3.  **情報の出典（URL）は、検索ツールが返した実際のURLを必ず明記すること。** 「検索で見つかります」や「未確定」といった記述は禁止です。
+4.  **文章中に挨拶、接続詞、丁寧語などは必要ありません。**取得できた情報を淡々と述べてください。
 
 # レポートの要件
 - 最新の情報({today}時点)を取得すること。
-- 最低10のWebサイトからの情報を統合すること。
+- 最低5のWebサイトからの情報を統合すること。
 - **検索は基本的に日本語で行ってください。** 必要に応じて英語などの多言語の情報も参照し、情報の網羅性を高めること。その際、固有名詞等は日本語で記述すること。
 """
 
@@ -51,7 +55,10 @@ Google検索ツールを使用して、入力されたキーワードに関す�
         system_instruction_text += f"\n\n# 前回の調査結果（コンテキスト）\n以下の情報は前回の調査結果です。今回の調査はこの内容を踏まえた上で、追加情報や深掘りを行ってください。\n{context}"
 
     generate_content_config = types.GenerateContentConfig(
+        temperature=0,
+        maxOutputTokens=1024,
         tools=[types.Tool(google_search=types.GoogleSearch())],
+        thinking_config=types.ThinkingConfig(thinking_budget=0),
         system_instruction=[
             types.Part.from_text(text=system_instruction_text),
         ],
@@ -99,6 +106,9 @@ def generate_fairy_response(research_text: str):
     )
 
     generate_content_config = types.GenerateContentConfig(
+        temperature=0,
+        maxOutputTokens=2048,
+        thinking_config=types.ThinkingConfig(thinking_budget=0),
         response_mime_type="application/json",
         response_schema=response_schema,
         system_instruction=[
@@ -237,12 +247,16 @@ def gemini_research(body: ResearchBodyModel, context: str = None):
     
     logger.info("--- Research Start ---")
     logger.info(f"User ID: {body.user_id}")
-    logger.info(f"Keyword: {body.keyword}")
+    logger.info(f"Original Keyword: {body.keyword}")
     if context:
         logger.info(f"Context provided (Length: {len(context)})")
 
+    # Stage 0: Keyword Extraction via Ollama
+    extracted_keyword = extract_keywords_from_ollama(body.keyword)
+    logger.info(f"Extracted Keyword: {extracted_keyword}")
+
     # Stage 1: Research
-    research_response = perform_research(body.keyword, context)
+    research_response = perform_research(extracted_keyword, context)
     if not research_response.text:
         raise ValueError("Research content is empty")
     
