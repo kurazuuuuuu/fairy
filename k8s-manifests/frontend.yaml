@@ -31,7 +31,10 @@ spec:
             cpu: "500m"
         env:
         - name: BACKEND_API_URL
-          value: https://api-fairy.krz-tech.net
+          valueFrom:
+            secretKeyRef:
+              name: fairy-secrets
+              key: backend-api-url
         - name: VITE_DISCORD_INVITE_URL
           valueFrom:
             secretKeyRef:
