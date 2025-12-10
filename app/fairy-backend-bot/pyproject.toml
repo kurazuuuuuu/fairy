@@ -1,10 +1,11 @@
 [project]
 name = "fairy-backend-bot"
-version = "2.0.3"
+version = "2.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "discord>=2.3.2",
     "dotenv>=0.9.9",
+    "ruff>=0.14.8",
 ]

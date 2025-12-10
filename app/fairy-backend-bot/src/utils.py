@@ -1,4 +1,3 @@
-import discord
 import logging
 from logging import getLogger, StreamHandler
 

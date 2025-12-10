@@ -1,7 +1,6 @@
 import os
 import discord
 from discord.ext import commands
-import asyncio
 import aiohttp
 from dotenv import load_dotenv
 
@@ -67,7 +66,7 @@ class ToSView(discord.ui.View):
 async def send_tos_request(message, user_id, access_token):
     view = ToSView(user_id, access_token)
     
-    embed = ToS()
+    embed = await ToS()
     embed.set_footer(text="同意いただける場合は、下のボタンを押してください。")
 
     try:
