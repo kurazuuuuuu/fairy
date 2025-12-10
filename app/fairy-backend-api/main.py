@@ -140,7 +140,7 @@ async def get_research_ogp_html(uuid: str):
     smart_message = result.get("smart_message", "")
     
     # Get base URLs from environment
-    base_url = os.getenv("BASE_URL", "https://api.fairy.krz-tech.net")
+    base_url = os.getenv("BASE_URL", "https://api-fairy.krz-tech.net")
     frontend_url = os.getenv("FRONTEND_URL", "https://fairy.krz-tech.net")
     
     html = generate_ogp_html(
