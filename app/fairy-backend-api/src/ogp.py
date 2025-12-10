@@ -178,7 +178,7 @@ def generate_ogp_html(
     description = smart_message[:200] + "…" if len(smart_message) > 200 else smart_message
     
     # Build OGP image URL
-    ogp_image_url = f"{base_url}/api/research/{uuid}/ogp.png"
+    ogp_image_url = f"{base_url}/v2/research/{uuid}/ogp.png"
     
     # Frontend redirect URL
     redirect_url = f"{frontend_url}/{uuid}"

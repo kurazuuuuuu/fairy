@@ -1,4 +1,3 @@
-import os
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import Response, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,16 +8,18 @@ from src.db import get_research_result, init_db, update_research_message_id, get
 from src.auth import verify_jwt_token, create_jwt_token
 from src.ogp import generate_ogp_image, generate_ogp_html
 from src.users import get_user, create_or_update_tos
+from src.config import config
 
 app = FastAPI()
 
 @app.on_event("startup")
 async def startup_event():
+    config.validate()
     init_db()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("CORS_ORIGINS", "https://fairy.krz-tech.net").split(","),
+    allow_origins=config.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -30,7 +31,7 @@ async def root():
 
 
 
-@app.post("/api/research")
+@app.post("/v2/research")
 async def research(body: ResearchBodyModel, token_payload: dict = Depends(verify_jwt_token)):
     user = get_user(body.user_id)
     if not user or not user.tos_agreed:
@@ -44,14 +45,14 @@ async def research(body: ResearchBodyModel, token_payload: dict = Depends(verify
 class TokenRequest(BaseModel):
     user_id: int
 
-@app.post("/api/users/tos")
+@app.post("/v2/users/tos")
 async def agree_tos(request: TokenRequest, token_payload: dict = Depends(verify_jwt_token)):
     # Verify the user_id in request matches token if needed, or just trust token verification
     # For now, we use the request body user_id but we could validate against token_payload['sub'] if it exists
     user = create_or_update_tos(request.user_id)
     return user
 
-@app.get("/api/research/{uuid}")
+@app.get("/v2/research/{uuid}")
 async def get_research(uuid: str, token_payload: dict = Depends(verify_jwt_token)):
     result = get_research_result(uuid)
     if result is None:
@@ -60,7 +61,7 @@ async def get_research(uuid: str, token_payload: dict = Depends(verify_jwt_token
         result["_id"] = str(result["_id"])
     return result
 
-@app.post("/api/auth/token")
+@app.post("/v2/auth/token")
 async def generate_token(request: TokenRequest):
     token = create_jwt_token(request.user_id)
     return {"access_token": token, "token_type": "bearer"}
@@ -69,7 +70,7 @@ class MessageIdUpdate(BaseModel):
     message_id: int
 
 
-@app.patch("/api/research/{uuid}/message")
+@app.patch("/v2/research/{uuid}/message")
 async def update_message_id(uuid: str, body: MessageIdUpdate, token_payload: dict = Depends(verify_jwt_token)):
     update_research_message_id(uuid, body.message_id)
     return {"status": "ok"}
@@ -80,7 +81,7 @@ class FollowupResearchBody(BaseModel):
     parent_message_id: int
 
 
-@app.post("/api/research/followup")
+@app.post("/v2/research/followup")
 async def followup_research(body: FollowupResearchBody, token_payload: dict = Depends(verify_jwt_token)):
     user = get_user(body.user_id)
     if not user or not user.tos_agreed:
@@ -101,7 +102,7 @@ async def followup_research(body: FollowupResearchBody, token_payload: dict = De
 # OGP endpoints (no authentication required for social media crawlers)
 # OGPエンドポイント（SNSクローラー向け、認証不要）
 
-@app.get("/api/research/{uuid}/ogp.png")
+@app.get("/v2/research/{uuid}/ogp.png")
 async def get_research_ogp_image(uuid: str):
     """
     Generate and return OGP image for research result.
@@ -126,7 +127,7 @@ async def get_research_ogp_image(uuid: str):
         }
     )
 
-@app.get("/api/research/{uuid}/ogp")
+@app.get("/v2/research/{uuid}/ogp")
 async def get_research_ogp_html(uuid: str):
     """
     Return HTML page with OGP meta tags for social media crawlers.
@@ -139,9 +140,9 @@ async def get_research_ogp_html(uuid: str):
     keyword = result.get("keyword", "")
     smart_message = result.get("smart_message", "")
     
-    # Get base URLs from environment
-    base_url = os.getenv("BASE_URL", "https://api-fairy.krz-tech.net")
-    frontend_url = os.getenv("FRONTEND_URL", "https://fairy.krz-tech.net")
+    # Get base URLs from config
+    base_url = config.BASE_URL
+    frontend_url = config.FRONTEND_URL
     
     html = generate_ogp_html(
         uuid=uuid,

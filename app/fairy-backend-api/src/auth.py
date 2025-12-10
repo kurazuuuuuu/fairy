@@ -1,14 +1,12 @@
-import os
 import jwt
 from datetime import datetime, timedelta
 from fastapi import HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from src.config import config
 
 security = HTTPBearer()
 
-JWT_SECRET = os.getenv("JWT_SECRET")
-if JWT_SECRET is None:
-    raise ValueError("JWT_SECRET is not set in the environment variables.")
+JWT_SECRET = config.JWT_SECRET
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
 

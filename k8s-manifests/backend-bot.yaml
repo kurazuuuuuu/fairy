@@ -33,12 +33,13 @@ spec:
             secretKeyRef:
               name: fairy-secrets
               key: discord-bot-token
-        - name: GEMINI_API_KEY
+        - name: BACKEND_INTERNAL_URL
           valueFrom:
             secretKeyRef:
               name: fairy-secrets
-              key: gemini-api-key
-        - name: MONGODB_URI
-          value: "mongodb://mongodb:27017"
-        - name: BACKEND_API_URL
-          value: "http://fairy-backend-api-internal:8000"
+              key: backend-internal-url
+        - name: APP_VERSION
+          valueFrom:
+            secretKeyRef:
+              name: fairy-secrets
+              key: app-version

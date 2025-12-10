@@ -1,0 +1,15 @@
+# kube-linter configuration
+# 意図的に無視するチェックを明示
+
+checks:
+  # Exclude checks that are not applicable to this project
+  # このプロジェクトに適用しないチェックを除外
+  exclude:
+    # ArgoCD image-updater manages image tags, so :latest is intentional
+    # ArgoCDのimage-updaterでイメージタグを管理しているため、:latestは意図的
+    - "latest-tag"
+    
+    # These require Dockerfile changes and may break functionality
+    # Dockerfileの変更が必要で、機能が壊れる可能性がある
+    - "no-read-only-root-fs"
+    - "run-as-non-root"

@@ -1,12 +1,9 @@
-import os
 from pymongo import MongoClient
-from dotenv import load_dotenv
 from datetime import datetime
 from src.models import ResearchResponseModel
+from src.config import config
 
-load_dotenv()
-
-MONGODB_URI = os.environ.get("MONGODB_URI", "mongodb://localhost:27017")
+MONGODB_URI = config.MONGODB_URI
 DATABASE_NAME = "fairy"
 COLLECTION_NAME = {
     "RESEARCH_RESULTS": "research_results",

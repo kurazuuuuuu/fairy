@@ -1,10 +1,9 @@
-import os
 import discord
 from discord.ext import commands
 import aiohttp
-from dotenv import load_dotenv
 
 import src.utils as utils
+from src.config import config
 
 logger = utils.logger
 
@@ -43,7 +42,7 @@ class ToSView(discord.ui.View):
             async with aiohttp.ClientSession() as session:
                 headers = {'Authorization': f'Bearer {self.access_token}'}
                 async with session.post(
-                    f"{os.getenv('BACKEND_API_URL')}/api/users/tos",
+                    f"{config.BACKEND_INTERNAL_URL}/v2/users/tos",
                     json={'user_id': self.user_id},
                     headers=headers
                 ) as response:
@@ -107,12 +106,7 @@ async def ToS():
     return embed
 
 def run_bot():
-    load_dotenv()
-
-    token = os.environ.get("DISCORD_BOT_TOKEN")
-    if not token:
-        logger.error("DISCORD_BOT_TOKEN not found in environment variables")
-        raise ValueError("DISCORD_BOT_TOKEN is required")
+    config.validate()
     
     bot = setup_bot()
     
@@ -174,7 +168,7 @@ def run_bot():
                         # Get JWT token first
                         async with aiohttp.ClientSession() as session:
                             async with session.post(
-                                f"{os.getenv('BACKEND_API_URL')}/api/auth/token",
+                                f"{config.BACKEND_INTERNAL_URL}/v2/auth/token",
                                 json={'user_id': message.author.id}
                             ) as token_response:
                                 if token_response.status != 200:
@@ -193,7 +187,7 @@ def run_bot():
                                 # For now, we assume if it's a reply to bot (or just a reply where bot is mentioned/active), we try follow-up
                                 
                                 async with session.post(
-                                    f"{os.getenv('BACKEND_API_URL')}/api/research/followup",
+                                    f"{config.BACKEND_INTERNAL_URL}/v2/research/followup",
                                     json={
                                         'user_id': message.author.id, 
                                         'keyword': content,
@@ -214,7 +208,7 @@ def run_bot():
                             else:
                                 # New Research
                                 async with session.post(
-                                    f"{os.getenv('BACKEND_API_URL')}/api/research",
+                                    f"{config.BACKEND_INTERNAL_URL}/v2/research",
                                     json={'user_id': message.author.id, 'keyword': content},
                                     headers=headers
                                 ) as response:
@@ -240,7 +234,7 @@ def run_bot():
         # Update message_id in backend
         try:
             async with session.patch(
-                f"{os.getenv('BACKEND_API_URL')}/api/research/{result['uuid']}/message",
+                f"{config.BACKEND_INTERNAL_URL}/v2/research/{result['uuid']}/message",
                 json={'message_id': sent_message.id},
                 headers=headers
             ) as patch_response:
@@ -252,7 +246,7 @@ def run_bot():
     # Run the bot
     try:
         logger.info("Starting bot...")
-        bot.run(token)
+        bot.run(config.DISCORD_BOT_TOKEN)
     except discord.LoginFailure:
         logger.error("Invalid bot token provided")
         raise

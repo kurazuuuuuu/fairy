@@ -3,10 +3,8 @@ import logging
 # To run this code you need to install the following dependencies:
 # pip install google-genai
 
-import os
 import time
 import uuid
-from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 from datetime import datetime
@@ -18,15 +16,13 @@ from bs4 import BeautifulSoup
 from src.models import ResearchBodyModel, ResearchResponseModel, UrlMetadata
 from src.db import save_research_result
 from src.users import add_research_to_user
+from src.config import config
 
 logger = logging.getLogger("uvicorn")
 
 def load_api_key():
-    load_dotenv()
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if api_key is None:
-        raise ValueError("GEMINI_API_KEY is not set in the environment variables.")
-    return api_key
+    """Get Gemini API key from config."""
+    return config.GEMINI_API_KEY
 
 def get_today():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -160,6 +156,11 @@ def resolve_redirect(url: str) -> tuple[str, str | None] | None:
         if response.status_code == 200:
             final_url = response.url
             try:
+                # Fix encoding: use apparent_encoding if charset is not specified
+                # エンコーディング修正：charsetが指定されていない場合はapparent_encodingを使用
+                if response.encoding is None or response.encoding == 'ISO-8859-1':
+                    response.encoding = response.apparent_encoding
+                
                 soup = BeautifulSoup(response.text, 'html.parser')
                 title = str(soup.title.string.strip()) if soup.title and soup.title.string else None
             except Exception:
