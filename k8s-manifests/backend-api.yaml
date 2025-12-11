@@ -101,9 +101,15 @@ spec:
               name: fairy-secrets
               key: app-version
         - name: OLLAMA_HOST
-          value: "http://localhost:11434"
+          valueFrom:
+            secretKeyRef:
+              name: fairy-secrets
+              key: ollama-host
         - name: GEMMA_MODEL
-          value: "gemma3:1b"
+          valueFrom:
+            secretKeyRef:
+              name: fairy-secrets
+              key: gemma-model
       volumes:
       - name: ollama-data
         persistentVolumeClaim:
