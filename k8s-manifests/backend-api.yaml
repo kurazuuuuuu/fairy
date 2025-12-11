@@ -50,7 +50,13 @@ spec:
         lifecycle:
           postStart:
             exec:
-              command: ["/bin/sh", "-c", "ollama pull gemma3:1b || true"]
+              command: ["/bin/sh", "-c", "ollama pull ${GEMMA_MODEL} || true"]
+        env:
+        - name: GEMMA_MODEL
+          valueFrom:
+            secretKeyRef:
+              name: fairy-secrets
+              key: gemma-model
       # Backend API container
       - name: fairy-backend-api
         image: ghcr.io/kurazuuuuuu/fairy-backend-api:latest
