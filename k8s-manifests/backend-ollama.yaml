@@ -50,13 +50,18 @@ spec:
         lifecycle:
           postStart:
             exec:
-              command: ["/bin/sh", "-c", "ollama pull ${OLLAMA_LLM_MODEL}", "ollama serve", "echo OLLAMA_LLM_MODEL: ${OLLAMA_LLM_MODEL}"]
+              command: ["/bin/sh", "-c", "ollama pull ${OLLAMA_LLM_MODEL}", "ollama pull ${OLLAMA_EMBEDDING_MODEL}","ollama serve"]
         env:
         - name: OLLAMA_LLM_MODEL
           valueFrom:
             secretKeyRef:
               name: fairy-secrets
               key: ollama-llm-model
+        - name: OLLAMA_EMBEDDING_MODEL
+          valueFrom:
+            secretKeyRef:
+              name: fairy-secrets
+              key: ollama-embedding-model
       volumes:
         - name: ollama-data
           persistentVolumeClaim:
