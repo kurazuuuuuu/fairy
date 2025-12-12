@@ -47,10 +47,14 @@ spec:
         volumeMounts:
         - name: ollama-data
           mountPath: /root/.ollama
-        lifecycle:
-          postStart:
-            exec:
-              command: ["/bin/sh", "-c", "ollama pull ${OLLAMA_LLM_MODEL} && ollama pull ${OLLAMA_EMBEDDING_MODEL} && ollama serve"]
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          ollama serve &
+          sleep 10
+          ollama pull ${OLLAMA_LLM_MODEL}
+          ollama pull ${OLLAMA_EMBEDDING_MODEL}
+          wait
         env:
         - name: OLLAMA_LLM_MODEL
           valueFrom:
