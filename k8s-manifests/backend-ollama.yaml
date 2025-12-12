@@ -50,7 +50,7 @@ spec:
         lifecycle:
           postStart:
             exec:
-              command: ["/bin/sh", "-c", "ollama pull ${OLLAMA_LLM_MODEL}", "ollama pull ${OLLAMA_EMBEDDING_MODEL}","ollama serve"]
+              command: ["/bin/sh", "-c", "ollama pull ${OLLAMA_LLM_MODEL} && ollama pull ${OLLAMA_EMBEDDING_MODEL} && ollama serve"]
         env:
         - name: OLLAMA_LLM_MODEL
           valueFrom:
