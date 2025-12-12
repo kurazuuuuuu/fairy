@@ -29,7 +29,7 @@ class ResearchResponseModel(BaseModel):
     time: Optional[float] = None
     urls: List[UrlMetadata] = []
     urls_excluded_count: int = 0
-    primary_research_result: UUID4 = None
+    primary_research_result: Optional[UUID4] = None
     total_tokens: Optional[int] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

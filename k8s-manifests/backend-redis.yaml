@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fairy-backend-redis
+  namespace: argocd-prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fairy-backend-redis
+  template:
+    metadata:
+      labels:
+        app: fairy-backend-redis
+    spec:
+      containers:
+      - name: redis-stack
+        image: redis/redis-stack-server:latest
+        ports:
+        - containerPort: 6379
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+      volumes:
+      - name: redis-data
+        persistentVolumeClaim:
+          claimName: redis-data-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fairy-backend-redis
+  namespace: argocd-prod
+spec:
+  selector:
+    app: fairy-backend-redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data-pvc
+  namespace: argocd-prod
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi

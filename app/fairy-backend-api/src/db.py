@@ -33,10 +33,13 @@ def get_research_result(uuid: str):
     collection = db[COLLECTION_NAME["RESEARCH_RESULTS"]]
     return collection.find_one({"_id": uuid})
 
-def update_research_message_id(uuid: str, message_id: int):
+def update_research_message_id(uuid: str, message_id: int, time: float = None):
     db = get_db()
     collection = db[COLLECTION_NAME["RESEARCH_RESULTS"]]
-    collection.update_one({"_id": uuid}, {"$set": {"message_id": message_id}})
+    update_data = {"message_id": message_id}
+    if time is not None:
+        update_data["time"] = time
+    collection.update_one({"_id": uuid}, {"$set": update_data})
 
 def get_research_by_message_id(message_id: int):
     db = get_db()

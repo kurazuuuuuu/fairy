@@ -50,13 +50,13 @@ spec:
         lifecycle:
           postStart:
             exec:
-              command: ["/bin/sh", "-c", "ollama pull ${GEMMA_MODEL}", "ollama serve", "echo GEMMA_MODEL: ${GEMMA_MODEL}"]
+              command: ["/bin/sh", "-c", "ollama pull ${OLLAMA_LLM_MODEL}", "ollama serve", "echo OLLAMA_LLM_MODEL: ${OLLAMA_LLM_MODEL}"]
         env:
-        - name: GEMMA_MODEL
+        - name: OLLAMA_LLM_MODEL
           valueFrom:
             secretKeyRef:
               name: fairy-secrets
-              key: gemma-model
+              key: ollama-llm-model
       volumes:
         - name: ollama-data
           persistentVolumeClaim:
