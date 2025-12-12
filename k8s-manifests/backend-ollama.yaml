@@ -57,6 +57,10 @@ spec:
             secretKeyRef:
               name: fairy-secrets
               key: gemma-model
+      volumes:
+        - name: ollama-data
+          persistentVolumeClaim:
+            claimName: ollama-data-pvc
 ---
 apiVersion: v1
 kind: Service
