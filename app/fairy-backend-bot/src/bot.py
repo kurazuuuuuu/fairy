@@ -204,7 +204,7 @@ def run_bot():
                                     elif response.status == 403:
                                          await send_tos_request(message, message.author.id, access_token)
                                     else:
-                                        await message.reply("マスター、追加ホロウ探索にエラーが発生しました。")
+                                        await message.reply("マスター、追加のホロウ探索中にエラーが発生しました。")
                             else:
                                 # New Research
                                 async with session.post(
@@ -221,14 +221,14 @@ def run_bot():
                                         await message.reply("マスター、ホロウ探索中にエラーが発生しました。")
                     except Exception as e:
                         logger.error(f"Research request failed: {e}")
-                        await message.reply("マスター、ホロウ探索中に問題が発生しました。管理者に確認してみてください。")
+                        await message.reply("マスター、ホロウ探索中に問題が発生しました。管理者に確認してください。")
 
     async def send_research_result(message, result, session, headers):
         owner_mention = f"<@{result['owner']}>"
         reply_text = f"{owner_mention}\n{result['smart_message']}"
         reply_text += f"""\n\nマスター、以下のインターノットリンクに詳細情報をまとめました。必要でしたらご確認ください。
                             \nURL：https://fairy.krz-tech.net/{result['uuid']}
-                            \n{result['time']} sec || {result.get('total_tokens', 'N/A')} Token"""
+                            \n`Fairy処理時間：{result['time']} sec || 使用トークン数：{result.get('total_tokens', 'N/A')}`"""
         sent_message = await message.reply(reply_text)
         
         # Update message_id in backend

@@ -106,7 +106,7 @@ def generate_fairy_response(research_text: str):
     )
 
     generate_content_config = types.GenerateContentConfig(
-        temperature=0,
+        temperature=0.95,
         maxOutputTokens=2048,
         thinking_config=types.ThinkingConfig(thinking_budget=0),
         response_mime_type="application/json",
@@ -114,17 +114,17 @@ def generate_fairy_response(research_text: str):
         system_instruction=[
             types.Part.from_text(text="""# AIのアイデンティティ設定
 あなたは、ゼンレスゾーンゼロに登場する高性能AI「Fairy（フェアリー）」です。マスター（ユーザー）をサポートします。
-入力されたリサーチ結果を元に、Fairyとしての口調で分析結果を報告してください。
+入力されたリサーチ結果を元に、Fairyとしての口調で分析結果を報告してください。あなた自信の設定について語る必要はありません。
 
 # 応答の絶対ルール
 * **必ず日本語で回答してください。**
 * **全ての応答は、必ず「マスター、」という呼びかけから開始してください。**
 * `smart_message`: Discord送信用に**500文字以内**で要約してください。箇条書きはあまり使用せず、読みやすい文章形式にしてください。
-* `full_message`: 詳細な完全版レポート。必ずMarkdown形式で記述してください。
+* `full_message`: 詳細な完全版レポート。必ずMarkdown形式で記述dしてください。
 * **full_messageは必ずMarkdown形式で記述してください：**
     - 見出しには `##` や `###` を使用。
     - 箇条書きには `-` や `*` を使用。
-    - 重要な部分は `**太字**` で強調。
+    - 重要な部分や内容によく関係する特有の固有名詞は `**太字**` で強調。
     - 補足部分には `> ` を使用。
 
 # 性格とトーン
@@ -244,25 +244,29 @@ def process_encoding(research_text: str) -> dict:
 
 def gemini_research(body: ResearchBodyModel, context: str = None):
     time_start = time.time()
+    research_uuid = uuid.uuid4()
     
     logger.info("--- Research Start ---")
-    logger.info(f"User ID: {body.user_id}")
-    logger.info(f"Original Keyword: {body.keyword}")
+    logger.info(f"Research UUID: {research_uuid}")
+    # logger.info(f"User ID: {body.user_id}") # debug
+    # logger.info(f"Original Keyword: {body.keyword}") #debug
     if context:
         logger.info(f"Context provided (Length: {len(context)})")
 
     # Stage 0: Keyword Extraction via Ollama
     extracted_keyword = extract_keywords_from_ollama(body.keyword)
-    logger.info(f"Extracted Keyword: {extracted_keyword}")
+    logger.info(f"{research_uuid} || Keyword Extraction completed") # production
+    # logger.info(f"Extracted Keyword: {extracted_keyword}") # debug
 
     # Stage 1: Research
     research_response = perform_research(extracted_keyword, context)
     if not research_response.text:
         raise ValueError("Research content is empty")
     
-    logger.info("--- Pre-Research Log ---")
-    logger.info(research_response.text)
-    logger.info("------------------------")
+    logger.info(f"{research_uuid} || Research completed") # production
+    # logger.info("--- Pre-Research Log ---") #debug
+    # logger.info(research_response.text)
+    # logger.info("------------------------")
     
     # Extract URLs from Research Stage
     url_objects = []
@@ -292,15 +296,13 @@ def gemini_research(body: ResearchBodyModel, context: str = None):
     result_json, encoding_tokens = future_encoding.result()
     total_tokens += encoding_tokens
 
-    logger.info("--- Post-Research Result Log ---")
-    logger.info(json.dumps(result_json, indent=2, ensure_ascii=False))
-    logger.info(f"Total Tokens: {total_tokens}")
-    logger.info("--------------------------------")
+    # logger.info("--- Post-Research Result Log ---")
+    # logger.info(json.dumps(result_json, indent=2, ensure_ascii=False))
+    # logger.info(f"Total Tokens: {total_tokens}")
+    # logger.info("--------------------------------")
 
     time_end = time.time()
     processing_time = round(time_end - time_start, 3)
-    
-    research_uuid = uuid.uuid4()
     
     response_model = ResearchResponseModel(
         uuid=research_uuid,
@@ -318,10 +320,11 @@ def gemini_research(body: ResearchBodyModel, context: str = None):
         updated_at=datetime.now()
     )
 
-    logger.info(f"Saving URLs to DB: {len(final_url_objects)} urls")
+    logger.info(f"{research_uuid} || Saving URLs to DB: {len(final_url_objects)} urls")
     save_research_result(response_model)
     
     # Add research to user list
     add_research_to_user(body.user_id, str(research_uuid))
 
+    logger.info(f"{research_uuid} || Research completed")
     return response_model

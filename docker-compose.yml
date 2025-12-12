@@ -8,14 +8,14 @@ services:
       - "8000:8000"
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - MONGODB_URI=mongodb://fairy-mongodb:27017
+      - MONGODB_URI=${MONGODB_URI}
       - JWT_SECRET=${JWT_SECRET}
       - BASE_URL=${BASE_URL}
       - FRONTEND_URL=${FRONTEND_URL}
       - CORS_ORIGINS=${CORS_ORIGINS}
       - APP_VERSION=${APP_VERSION}
-      - OLLAMA_HOST=http://ollama:11434
-      - GEMMA_MODEL=gemma3:1b
+      - OLLAMA_HOST=${OLLAMA_HOST}
+      - GEMMA_MODEL=${GEMMA_MODEL}
     restart: unless-stopped
     depends_on:
       fairy-mongodb:
@@ -46,12 +46,13 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
+        echo GEMMA_MODEL: ${GEMMA_MODEL}
         ollama serve &
         sleep 5
-        ollama pull gemma3:1b
+        ollama pull ${GEMMA_MODEL}
         tail -f /dev/null
     healthcheck:
-      test: ["CMD-SHELL", "ollama list | grep -q gemma3"]
+      test: ["CMD-SHELL", "ollama list | grep -q ${GEMMA_MODEL}"]
       interval: 10s
       timeout: 5s
       retries: 30

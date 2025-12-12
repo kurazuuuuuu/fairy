@@ -54,8 +54,8 @@ class Config:
             logger.warning("CORS_ORIGINS not set, using default: https://fairy.krz-tech.net")
         
         # Ollama settings (for keyword extraction)
-        self.OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
-        self.GEMMA_MODEL = os.getenv("GEMMA_MODEL", "gemma3:1b")
+        self.OLLAMA_HOST = os.getenv("OLLAMA_HOST")
+        self.GEMMA_MODEL = os.getenv("GEMMA_MODEL")
     
     def _get_required(self, key: str) -> str:
         """Get a required environment variable or raise an error."""
