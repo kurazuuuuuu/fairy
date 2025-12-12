@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
 - backend-api.yaml
 - backend-bot.yaml
+- backend-ollama.yaml
 - frontend.yaml
 - mongodb.yaml
 images:
