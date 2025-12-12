@@ -50,7 +50,7 @@ spec:
         lifecycle:
           postStart:
             exec:
-              command: ["/bin/sh", "-c", "ollama pull ${GEMMA_MODEL} || true; ollama serve", "echo GEMMA_MODEL: ${GEMMA_MODEL}"]
+              command: ["/bin/sh", "-c", "ollama pull ${GEMMA_MODEL}", "ollama serve", "echo GEMMA_MODEL: ${GEMMA_MODEL}"]
         env:
         - name: GEMMA_MODEL
           valueFrom:
