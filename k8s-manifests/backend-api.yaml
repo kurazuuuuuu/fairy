@@ -82,6 +82,11 @@ spec:
             secretKeyRef:
               name: fairy-secrets
               key: ollama-llm-model
+        - name: OLLAMA_EMBEDDING_MODEL
+          valueFrom:
+            secretKeyRef:
+              name: fairy-secrets
+              key: ollama-embedding-model
       volumes:
       - name: ollama-data
         persistentVolumeClaim:
