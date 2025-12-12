@@ -11,12 +11,16 @@ from src.ogp import generate_ogp_image, generate_ogp_html
 from src.users import get_user, create_or_update_tos
 from src.config import config
 
+from src.routers.research import router as research_router
+
 app = FastAPI()
 
 @app.on_event("startup")
 async def startup_event():
     config.validate()
     init_db()
+
+app.include_router(research_router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -30,17 +34,9 @@ app.add_middleware(
 async def root():
     return {"message": "Fairy API Server"}
 
-
-
-@app.post("/v2/research")
-async def research(body: ResearchBodyModel, token_payload: dict = Depends(verify_jwt_token)):
-    user = get_user(body.user_id)
-    if not user or not user.tos_agreed:
-        raise HTTPException(status_code=403, detail="Terms of Service not agreed")
-    
-    loop = asyncio.get_event_loop()
-    response = await loop.run_in_executor(None, gemini_research, body)
-    return response
+# @app.post("/v2/research") - Moved to src.routers.research
+# async def research(body: ResearchBodyModel, token_payload: dict = Depends(verify_jwt_token)):
+#     ...
 
 
 
@@ -68,13 +64,16 @@ async def generate_token(request: TokenRequest):
     token = create_jwt_token(request.user_id)
     return {"access_token": token, "token_type": "bearer"}
 
+from typing import Optional
+
 class MessageIdUpdate(BaseModel):
     message_id: int
+    time: Optional[float] = None
 
 
 @app.patch("/v2/research/{uuid}/message")
 async def update_message_id(uuid: str, body: MessageIdUpdate, token_payload: dict = Depends(verify_jwt_token)):
-    update_research_message_id(uuid, body.message_id)
+    update_research_message_id(uuid, body.message_id, body.time)
     return {"status": "ok"}
 
 class FollowupResearchBody(BaseModel):
