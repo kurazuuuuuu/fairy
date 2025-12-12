@@ -41,7 +41,7 @@ def extract_keywords_from_ollama(message: str) -> str:
         client = ollama.Client(host=config.OLLAMA_HOST)
         
         response = client.chat(
-            model=config.GEMMA_MODEL,
+            model=config.OLLAMA_LLM_MODEL,
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": f'input: "{message}"\noutput:'}
@@ -71,3 +71,19 @@ def extract_keywords_from_ollama(message: str) -> str:
     except Exception as e:
         logger.warning(f"Ollama unavailable: {e}, using original message")
         return message
+
+
+def get_embedding(text: str) -> list[float]:
+    """
+    Generate vector embedding for the given text using Ollama.
+    """
+    try:
+        client = ollama.Client(host=config.OLLAMA_HOST)
+        response = client.embeddings(
+            model=config.OLLAMA_EMBEDDING_MODEL,
+            prompt=text
+        )
+        return response["embedding"]
+    except Exception as e:
+        logger.error(f"Failed to get embedding: {e}")
+        return []

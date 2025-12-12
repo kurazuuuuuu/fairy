@@ -4,6 +4,7 @@ import aiohttp
 
 import src.utils as utils
 from src.config import config
+import time
 
 logger = utils.logger
 
@@ -186,6 +187,7 @@ def run_bot():
                                 # Check if parent message is from bot (optional, but good practice)
                                 # For now, we assume if it's a reply to bot (or just a reply where bot is mentioned/active), we try follow-up
                                 
+                                start_time = time.time()
                                 async with session.post(
                                     f"{config.BACKEND_INTERNAL_URL}/v2/research/followup",
                                     json={
@@ -195,8 +197,10 @@ def run_bot():
                                     },
                                     headers=headers
                                 ) as response:
+                                    end_time = time.time()
                                     if response.status == 200:
                                         result = await response.json()
+                                        result['time'] = round(end_time - start_time, 2)
                                         await send_research_result(message, result, session, headers)
                                     elif response.status == 404:
                                         # Parent research not found, maybe treat as new research?
@@ -207,13 +211,16 @@ def run_bot():
                                         await message.reply("マスター、追加のホロウ探索中にエラーが発生しました。")
                             else:
                                 # New Research
+                                start_time = time.time()
                                 async with session.post(
                                     f"{config.BACKEND_INTERNAL_URL}/v2/research",
                                     json={'user_id': message.author.id, 'keyword': content},
                                     headers=headers
                                 ) as response:
+                                    end_time = time.time()
                                     if response.status == 200:
                                         result = await response.json()
+                                        result['time'] = round(end_time - start_time, 2)
                                         await send_research_result(message, result, session, headers)
                                     elif response.status == 403:
                                         await send_tos_request(message, message.author.id, access_token)
@@ -228,14 +235,18 @@ def run_bot():
         reply_text = f"{owner_mention}\n{result['smart_message']}"
         reply_text += f"""\n\nマスター、以下のインターノットリンクに詳細情報をまとめました。必要でしたらご確認ください。
                             \nURL：https://fairy.krz-tech.net/{result['uuid']}
-                            \n`Fairy処理時間：{result['time']} sec || 使用トークン数：{result.get('total_tokens', 'N/A')}`"""
+                            \n`Fairy処理時間：{result['time']} sec | 使用トークン数：{result.get('total_tokens', 'N/A')}`"""
         sent_message = await message.reply(reply_text)
         
-        # Update message_id in backend
+        # Update message_id and time in backend
         try:
+            patch_payload = {'message_id': sent_message.id}
+            if 'time' in result:
+                patch_payload['time'] = result['time']
+            
             async with session.patch(
                 f"{config.BACKEND_INTERNAL_URL}/v2/research/{result['uuid']}/message",
-                json={'message_id': sent_message.id},
+                json=patch_payload,
                 headers=headers
             ) as patch_response:
                 if patch_response.status != 200:

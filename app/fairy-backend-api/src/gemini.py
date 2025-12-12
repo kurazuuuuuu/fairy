@@ -242,31 +242,123 @@ def process_encoding(research_text: str) -> dict:
 
     return result_json, token_count
 
-def gemini_research(body: ResearchBodyModel, context: str = None):
-    time_start = time.time()
+    return result_json, token_count
+
+    return result_json, token_count
+
+def _perform_rag_generation(keyword: str, context: str) -> str:
+    """
+    Internal: Generate RAG response text using context.
+    """
+    client = genai.Client(api_key=load_api_key())
+    model = "gemini-2.5-flash-lite"
+    
+    system_instruction = """あなたはFairyです。以下の「過去の調査ログ」のみを使用して、ユーザーの質問に回答してください。
+外部検索は行わず、与えられた情報源から最適な回答を構築してください。
+もし情報が不足している場合のみ、その旨を報告してください。"""
+
+    contents = [
+        types.Content(
+            role="user",
+            parts=[
+                types.Part.from_text(text=f"質問: {keyword}\n\n# 過去の調査ログ\n{context}"),
+            ],
+        ),
+    ]
+    
+    try:
+        response = client.models.generate_content(
+            model=model,
+            contents=contents,
+            config=types.GenerateContentConfig(
+                temperature=0.3,
+                maxOutputTokens=2048,
+                system_instruction=[types.Part.from_text(text=system_instruction)],
+            )
+        )
+        return response.text
+    except Exception as e:
+        logger.error(f"Gemini RAG Error: {e}")
+        raise e
+
+def _create_research_response(
+    user_id: int, 
+    keyword: str, 
+    result_json: dict, 
+    processing_time: float, 
+    total_tokens: int, 
+    urls: list[UrlMetadata] = None, 
+    urls_excluded_count: int = 0
+) -> ResearchResponseModel:
+    """Helper to create and save ResearchResponseModel."""
     research_uuid = uuid.uuid4()
     
-    logger.info("--- Research Start ---")
-    logger.info(f"Research UUID: {research_uuid}")
-    # logger.info(f"User ID: {body.user_id}") # debug
-    # logger.info(f"Original Keyword: {body.keyword}") #debug
-    if context:
-        logger.info(f"Context provided (Length: {len(context)})")
+    response_model = ResearchResponseModel(
+        uuid=research_uuid,
+        message_id=0, # Placeholder, updated later by Bot
+        owner=user_id,
+        keyword=str(keyword),
+        smart_message=str(result_json.get('smart_message', '')),
+        full_message=str(result_json.get('full_message', '')),
+        time=processing_time,
+        urls=urls or [],
+        urls_excluded_count=urls_excluded_count,
+        primary_research_result=None,
+        total_tokens=total_tokens,
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    )
 
-    # Stage 0: Keyword Extraction via Ollama
+    logger.info(f"{research_uuid} || Saving research result")
+    save_research_result(response_model)
+    add_research_to_user(user_id, str(research_uuid))
+    
+    return response_model
+
+def rag_research(body: ResearchBodyModel, context: str) -> ResearchResponseModel:
+    """
+    Execute RAG-based research flow.
+    1. Generate text from Context
+    2. Encode to JSON (Fairy Persona)
+    3. Save and Return
+    """
+    time_start = time.time()
+    logger.info("--- RAG Research Start ---")
+    
+    # Stage 1: RAG Generation
+    rag_text = _perform_rag_generation(body.keyword, context)
+    
+    # Stage 2: Encoding
+    result_json, token_count = process_encoding(rag_text)
+    
+    time_end = time.time()
+    processing_time = round(time_end - time_start, 3)
+    
+    # Create Response
+    return _create_research_response(
+        user_id=body.user_id,
+        keyword=body.keyword,
+        result_json=result_json,
+        processing_time=processing_time,
+        total_tokens=token_count
+    )
+
+def gemini_research(body: ResearchBodyModel, context: str = None) -> ResearchResponseModel:
+    time_start = time.time()
+    research_uuid = uuid.uuid4() # Note: _create_research_response generates a new UUID, simplified flow below
+    
+    logger.info("--- Research Start ---")
+    
+    # Stage 0: Keyword Extraction
     extracted_keyword = extract_keywords_from_ollama(body.keyword)
-    logger.info(f"{research_uuid} || Keyword Extraction completed") # production
-    # logger.info(f"Extracted Keyword: {extracted_keyword}") # debug
+    logger.info(f"Keyword Extraction: {extracted_keyword}")
 
     # Stage 1: Research
     research_response = perform_research(extracted_keyword, context)
     if not research_response.text:
         raise ValueError("Research content is empty")
     
-    logger.info(f"{research_uuid} || Research completed") # production
-    # logger.info("--- Pre-Research Log ---") #debug
-    # logger.info(research_response.text)
-    # logger.info("------------------------")
+    logger.info("Research Stage Completed")
     
     # Extract URLs from Research Stage
     url_objects = []
@@ -287,6 +379,7 @@ def gemini_research(body: ResearchBodyModel, context: str = None):
         
         # Wait for both to complete
         final_url_objects, urls_excluded_count = future_urls.result()
+    
     # Calculate total tokens
     total_tokens = 0
     if research_response.usage_metadata:
@@ -296,35 +389,20 @@ def gemini_research(body: ResearchBodyModel, context: str = None):
     result_json, encoding_tokens = future_encoding.result()
     total_tokens += encoding_tokens
 
-    # logger.info("--- Post-Research Result Log ---")
-    # logger.info(json.dumps(result_json, indent=2, ensure_ascii=False))
-    # logger.info(f"Total Tokens: {total_tokens}")
-    # logger.info("--------------------------------")
-
     time_end = time.time()
     processing_time = round(time_end - time_start, 3)
     
-    response_model = ResearchResponseModel(
-        uuid=research_uuid,
-        message_id=0, # Placeholder
-        owner=body.user_id,
-        keyword=str(body.keyword),
-        smart_message=str(result_json.get('smart_message', '')),
-        full_message=str(result_json.get('full_message', '')),
-        time=processing_time,
-        urls=final_url_objects,
-        urls_excluded_count=urls_excluded_count,
-        primary_research_result=uuid.uuid4(), # Placeholder
+    # Use helper to create response
+    # Note: Using helper generates a new UUID.
+    response_model = _create_research_response(
+        user_id=body.user_id,
+        keyword=body.keyword,
+        result_json=result_json,
+        processing_time=processing_time,
         total_tokens=total_tokens,
-        created_at=datetime.now(),
-        updated_at=datetime.now()
+        urls=final_url_objects,
+        urls_excluded_count=urls_excluded_count
     )
 
-    logger.info(f"{research_uuid} || Saving URLs to DB: {len(final_url_objects)} urls")
-    save_research_result(response_model)
-    
-    # Add research to user list
-    add_research_to_user(body.user_id, str(research_uuid))
-
-    logger.info(f"{research_uuid} || Research completed")
+    logger.info(f"Research Completed: {response_model.uuid}")
     return response_model
