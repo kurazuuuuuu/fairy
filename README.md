@@ -41,7 +41,7 @@ Fairy -> https://fairy.krz-tech.net
 ### Local-LLM
 
 * Ollama
-      * Gemma 3 1B
+   * Gemma 3 1B
 
 ## 処理フロー
 
