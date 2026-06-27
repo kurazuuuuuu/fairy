@@ -17,9 +17,12 @@ from src.models import ResearchBodyModel, ResearchResponseModel, UrlMetadata
 from src.db import save_research_result
 from src.users import add_research_to_user
 from src.config import config
-from src.ollama_client import extract_keywords_from_ollama
+from src.keyword_extractor import extract_keywords
 
 logger = logging.getLogger("uvicorn")
+
+GEMINI_MODEL = "gemini-3.1-flash-lite"
+DEFAULT_THINKING_CONFIG = types.ThinkingConfig(thinking_level="minimal")
 
 def load_api_key():
     """Get Gemini API key from config."""
@@ -34,7 +37,7 @@ def perform_research(keyword: str, context: str = None):
     """Stage 1: Research - Gather information using Google Search"""
     client = genai.Client(api_key=load_api_key())
     today = get_today()
-    model = "gemini-2.5-flash-lite"
+    model = GEMINI_MODEL
 
     system_instruction_text = f"""あなたは優秀なリサーチャーです。
 Google検索ツールを使用して、入力されたキーワードに関する最新かつ正確な情報を収集し、レポートを作成してください。
@@ -58,7 +61,7 @@ Google検索ツールを使用して、入力されたキーワードに関す�
         temperature=0,
         maxOutputTokens=1024,
         tools=[types.Tool(google_search=types.GoogleSearch())],
-        thinking_config=types.ThinkingConfig(thinking_budget=0),
+        thinking_config=DEFAULT_THINKING_CONFIG,
         system_instruction=[
             types.Part.from_text(text=system_instruction_text),
         ],
@@ -87,7 +90,7 @@ Google検索ツールを使用して、入力されたキーワードに関す�
 def generate_fairy_response(research_text: str):
     """Stage 2: Encoding - Apply Fairy persona and format as JSON"""
     client = genai.Client(api_key=load_api_key())
-    model = "gemini-2.5-flash-lite"
+    model = GEMINI_MODEL
 
     # Schema definition
     response_schema = types.Schema(
@@ -108,7 +111,7 @@ def generate_fairy_response(research_text: str):
     generate_content_config = types.GenerateContentConfig(
         temperature=0.95,
         maxOutputTokens=2048,
-        thinking_config=types.ThinkingConfig(thinking_budget=0),
+        thinking_config=DEFAULT_THINKING_CONFIG,
         response_mime_type="application/json",
         response_schema=response_schema,
         system_instruction=[
@@ -242,45 +245,6 @@ def process_encoding(research_text: str) -> dict:
 
     return result_json, token_count
 
-    return result_json, token_count
-
-    return result_json, token_count
-
-def _perform_rag_generation(keyword: str, context: str) -> str:
-    """
-    Internal: Generate RAG response text using context.
-    """
-    client = genai.Client(api_key=load_api_key())
-    model = "gemini-2.5-flash-lite"
-    
-    system_instruction = """あなたはFairyです。以下の「過去の調査ログ」のみを使用して、ユーザーの質問に回答してください。
-外部検索は行わず、与えられた情報源から最適な回答を構築してください。
-もし情報が不足している場合のみ、その旨を報告してください。"""
-
-    contents = [
-        types.Content(
-            role="user",
-            parts=[
-                types.Part.from_text(text=f"質問: {keyword}\n\n# 過去の調査ログ\n{context}"),
-            ],
-        ),
-    ]
-    
-    try:
-        response = client.models.generate_content(
-            model=model,
-            contents=contents,
-            config=types.GenerateContentConfig(
-                temperature=0.3,
-                maxOutputTokens=2048,
-                system_instruction=[types.Part.from_text(text=system_instruction)],
-            )
-        )
-        return response.text
-    except Exception as e:
-        logger.error(f"Gemini RAG Error: {e}")
-        raise e
-
 def _create_research_response(
     user_id: int, 
     keyword: str, 
@@ -315,34 +279,6 @@ def _create_research_response(
     
     return response_model
 
-def rag_research(body: ResearchBodyModel, context: str) -> ResearchResponseModel:
-    """
-    Execute RAG-based research flow.
-    1. Generate text from Context
-    2. Encode to JSON (Fairy Persona)
-    3. Save and Return
-    """
-    time_start = time.time()
-    logger.info("--- RAG Research Start ---")
-    
-    # Stage 1: RAG Generation
-    rag_text = _perform_rag_generation(body.keyword, context)
-    
-    # Stage 2: Encoding
-    result_json, token_count = process_encoding(rag_text)
-    
-    time_end = time.time()
-    processing_time = round(time_end - time_start, 3)
-    
-    # Create Response
-    return _create_research_response(
-        user_id=body.user_id,
-        keyword=body.keyword,
-        result_json=result_json,
-        processing_time=processing_time,
-        total_tokens=token_count
-    )
-
 def gemini_research(body: ResearchBodyModel, context: str = None) -> ResearchResponseModel:
     time_start = time.time()
     research_uuid = uuid.uuid4() # Note: _create_research_response generates a new UUID, simplified flow below
@@ -350,7 +286,7 @@ def gemini_research(body: ResearchBodyModel, context: str = None) -> ResearchRes
     logger.info("--- Research Start ---")
     
     # Stage 0: Keyword Extraction
-    extracted_keyword = extract_keywords_from_ollama(body.keyword)
+    extracted_keyword = extract_keywords(body.keyword)
     logger.info(f"Keyword Extraction: {extracted_keyword}")
 
     # Stage 1: Research

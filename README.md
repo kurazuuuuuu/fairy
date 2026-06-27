@@ -34,14 +34,8 @@ Fairy -> https://fairy.krz-tech.net
 
 * Python
     * FastAPI
-    * Ollama
     * MongoDB (NoSQL)
-    * Google Gemini 2.5 Flash Lite
-
-### Local-LLM
-
-* Ollama
-   * Gemma 3 1B
+    * Google Gemini 3.1 Flash Lite
 
 ## 処理フロー
 
@@ -50,7 +44,6 @@ sequenceDiagram
     participant User as User (Discord)
     participant Bot as Discord Bot
     participant API as Backend API
-    participant Ollama as Ollama (Local LLM)
     participant Gemini as Gemini API (Google)
     participant DB as MongoDB
     participant Web as Frontend (Web)
@@ -59,9 +52,8 @@ sequenceDiagram
     Bot->>API: POST /v2/research (keyword)
     
     rect rgb(20, 20, 20)
-        Note over API, Ollama: Stage 0: Keyword Extraction
-        API->>Ollama: Extract keywords (Gemma 3 1B)
-        Ollama-->>API: Extracted Keywords
+        Note over API: Stage 0: Keyword Extraction
+        API->>API: Extract keywords (rule-based)
     end
 
     rect rgb(30, 30, 30)

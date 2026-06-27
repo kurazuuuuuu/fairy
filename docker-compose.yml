@@ -14,17 +14,9 @@ services:
       - FRONTEND_URL=${FRONTEND_URL}
       - CORS_ORIGINS=${CORS_ORIGINS}
       - APP_VERSION=${APP_VERSION}
-      - OLLAMA_HOST=${OLLAMA_HOST}
-      - OLLAMA_LLM_MODEL=${OLLAMA_LLM_MODEL}
-      - OLLAMA_EMBEDDING_MODEL=${OLLAMA_EMBEDDING_MODEL}
-      - REDIS_URL=${REDIS_URL}
     restart: unless-stopped
     depends_on:
       fairy-mongodb:
-        condition: service_started
-      ollama:
-        condition: service_healthy
-      fairy-backend-redis:
         condition: service_started
 
   fairy-backend-bot:
@@ -39,38 +31,6 @@ services:
     restart: unless-stopped
     depends_on:
       - fairy-backend-api
-
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    restart: unless-stopped
-    entrypoint: ["/bin/sh", "-c"]
-    command:
-      - |
-        echo OLLAMA_LLM_MODEL: ${OLLAMA_LLM_MODEL}
-        echo OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL}
-        ollama serve &
-        sleep 5
-        ollama pull ${OLLAMA_LLM_MODEL}
-        ollama pull ${OLLAMA_EMBEDDING_MODEL}
-        tail -f /dev/null
-    healthcheck:
-      test: ["CMD-SHELL", "ollama list | grep -q ${OLLAMA_LLM_MODEL}"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-      start_period: 120s
-
-  fairy-backend-redis:
-    image: redis/redis-stack-server:latest
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    restart: unless-stopped
 
   fairy-mongodb:
     image: mongo:6.0
@@ -93,5 +53,3 @@ services:
 
 volumes:
   mongodb_data:
-  ollama_data:
-  redis_data:

@@ -30,20 +30,11 @@ class Config:
     # Optional environment variables with defaults / オプション環境変数（デフォルト値あり）
     CORS_ORIGINS: list[str]
     APP_VERSION: str
-    OLLAMA_HOST: str
-    OLLAMA_LLM_MODEL: str
     
     def _get_required(self, key: str) -> str:
         """Get a required environment variable or raise an error."""
         value = os.getenv(key)
         if not value:
-            # For local development or non-critical envs, we might want defaults, 
-            # but usually required means required.
-            # REDIS_URL might be optional for now if we allow running without redis in dev?
-            # Let's make it optional with default None for now to avoid breaking local dev immediately if not set
-            if key == "REDIS_URL":
-                return None 
-            
             error_msg = f"Required environment variable '{key}' is not set"
             logger.error(error_msg)
             raise ValueError(error_msg)
@@ -57,9 +48,6 @@ class Config:
         self.MONGODB_URI = self._get_required("MONGODB_URI")
         self.BASE_URL = self._get_required("BASE_URL")
         self.FRONTEND_URL = self._get_required("FRONTEND_URL")
-        
-        # Redis Settings (Optional for dev, ideally required for prod)
-        self.REDIS_URL = os.getenv("REDIS_URL")
 
         # Optional variables with defaults
         # オプション変数（デフォルト値あり）
@@ -71,11 +59,6 @@ class Config:
         else:
             self.CORS_ORIGINS = ["https://fairy.krz-tech.net"]
             logger.warning("CORS_ORIGINS not set, using default: https://fairy.krz-tech.net")
-        
-        # Ollama settings (for keyword extraction)
-        self.OLLAMA_HOST = os.getenv("OLLAMA_HOST")
-        self.OLLAMA_LLM_MODEL = os.getenv("OLLAMA_LLM_MODEL")
-        self.OLLAMA_EMBEDDING_MODEL = os.getenv("OLLAMA_EMBEDDING_MODEL")
     
     def validate(self) -> bool:
         """Validate all configuration values are properly set."""
@@ -86,13 +69,9 @@ class Config:
         logger.info(f"  - MONGODB_URI: {self.MONGODB_URI[:20]}...")
         logger.info(f"  - BASE_URL: {self.BASE_URL}")
         logger.info(f"  - FRONTEND_URL: {self.FRONTEND_URL}")
-        logger.info(f"  - REDIS_URL: {self.REDIS_URL}")
         logger.info(f"  - CORS_ORIGINS: {self.CORS_ORIGINS}")
         logger.info(f"  - GEMINI_API_KEY: {'*' * 10}...")
         logger.info(f"  - JWT_SECRET: {'*' * 10}...")
-        logger.info(f"  - OLLAMA_HOST: {self.OLLAMA_HOST}")
-        logger.info(f"  - OLLAMA_LLM_MODEL: {self.OLLAMA_LLM_MODEL}")
-        logger.info(f"  - OLLAMA_EMBEDDING_MODEL: {self.OLLAMA_EMBEDDING_MODEL}")
         return True
 
 
