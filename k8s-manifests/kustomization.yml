@@ -7,8 +7,8 @@ resources:
 - mongodb.yaml
 images:
 - name: ghcr.io/kurazuuuuuu/fairy-backend-bot
-  digest: sha256:86e69f6803a01e5b29da85049a83080c021d75b4bb25105a386cd2395f9efb3c
+  digest: sha256:eac94598f490ce4b4f9a8140ad642a1c37a05823de1a3b19d0bca04525ba6673
 - name: ghcr.io/kurazuuuuuu/fairy-backend-api
-  digest: sha256:89d45aa3a244ec10cf53cf4261a823938097600964e47f18170993de83879899
+  digest: sha256:ce3e822a902074c35238da8f24cf392962b5193b0423bffbea8925d5890fbc96
 - name: ghcr.io/kurazuuuuuu/fairy-frontend
-  digest: sha256:70636b9252df156071173fa491af70dede84f5a840ab4546332c290616284b1b
+  digest: sha256:c9a68dd89259a0044e442e772888a9c97765d03678a7ada284a56a2d7963affb
