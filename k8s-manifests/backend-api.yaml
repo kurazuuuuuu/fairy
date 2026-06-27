@@ -26,11 +26,11 @@ spec:
         - containerPort: 8000
         resources:
           requests:
-            memory: "512Mi"
-            cpu: "500m"
+            memory: "256Mi"
+            cpu: "250m"
           limits:
-            memory: "2Gi"
-            cpu: "2000m"
+            memory: "1Gi"
+            cpu: "1000m"
         env:
         - name: GEMINI_API_KEY
           valueFrom:
@@ -42,11 +42,6 @@ spec:
             secretKeyRef:
               name: fairy-secrets
               key: mongodb-uri
-        - name: REDIS_URL
-          valueFrom:
-            secretKeyRef:
-              name: fairy-secrets
-              key: redis-url
         - name: CORS_ORIGINS
           valueFrom:
             secretKeyRef:
@@ -72,25 +67,6 @@ spec:
             secretKeyRef:
               name: fairy-secrets
               key: app-version
-        - name: OLLAMA_HOST
-          valueFrom:
-            secretKeyRef:
-              name: fairy-secrets
-              key: ollama-host
-        - name: OLLAMA_LLM_MODEL
-          valueFrom:
-            secretKeyRef:
-              name: fairy-secrets
-              key: ollama-llm-model
-        - name: OLLAMA_EMBEDDING_MODEL
-          valueFrom:
-            secretKeyRef:
-              name: fairy-secrets
-              key: ollama-embedding-model
-      volumes:
-      - name: ollama-data
-        persistentVolumeClaim:
-          claimName: ollama-data-pvc
 ---
 apiVersion: v1
 kind: Service
