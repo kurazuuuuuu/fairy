@@ -21,7 +21,7 @@ from src.keyword_extractor import extract_keywords
 
 logger = logging.getLogger("uvicorn")
 
-GEMINI_MODEL = "gemini-3.1-flash-lite"
+GEMINI_MODEL = "gemini-3.5-flash-lite"
 DEFAULT_THINKING_CONFIG = types.ThinkingConfig(thinking_level="minimal")
 
 def load_api_key():
