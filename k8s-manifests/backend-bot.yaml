@@ -23,10 +23,10 @@ spec:
         resources:
           requests:
             memory: "128Mi"
-            cpu: "100m"
+            cpu: "128m"
           limits:
-            memory: "512Mi"
-            cpu: "500m"
+            memory: "256Mi"
+            cpu: "256m"
         env:
         - name: DISCORD_BOT_TOKEN
           valueFrom:
