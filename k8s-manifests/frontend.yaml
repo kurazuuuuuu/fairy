@@ -24,11 +24,11 @@ spec:
         - containerPort: 80
         resources:
           requests:
-            memory: "128Mi"
-            cpu: "128m"
+            memory: "32Mi"
+            cpu: "50m"
           limits:
-            memory: "256Mi"
-            cpu: "256m"
+            memory: "64Mi"
+            cpu: "200m"
         env:
         - name: BACKEND_API_URL
           valueFrom:
